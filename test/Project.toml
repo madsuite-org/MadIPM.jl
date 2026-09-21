@@ -68,4 +68,4 @@ p7zip_jll = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 MadIPM = {path = ".."}
 
 [compat]
-MadNLP = "=0.9.1"
+MadNLP = "=0.10"
