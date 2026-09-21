@@ -1,5 +1,11 @@
-using MadNLPGPU
 import LinearAlgebra: BlasFloat
+
+function CUDSSSolver(
+    aug_com::SparseMatrixCSC{T, Cint};
+    opt::CudssSolverOptions = CudssSolverOptions(),
+) where T
+    return CUDSSSolver(CUSPARSE.CuSparseMatrixCSC(aug_com); opt=opt)
+end
 
 @kernel function _transfer_to_map!(dest, to_map, src)
     k = @index(Global, Linear)
@@ -27,7 +33,7 @@ end
 
 function MadNLP.compress_hessian!(
     kkt::MadNLP.SparseKKTSystem{T,VT,MT},
-) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
+) where {T,VT<:CuVector{T},MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
     MadNLP.transfer!(kkt.hess_com, kkt.hess_raw, kkt.hess_csc_map)
 end
 
@@ -111,31 +117,31 @@ MadIPM._rowval(A::CuSparseMatrixCSC) = A.rowVal
 MadIPM._nzval(A::CuSparseMatrixCSC) = A.nzVal
 
 # we introduce a new constructor that takes the nzvals as a matrix explicitly
-function MadNLPGPU.CUDSSSolver(
+function CUDSSSolver(
     aug_com::CUSPARSE.CuSparseMatrixCSC{T,Cint},
     nzvals_mat::CuMatrix{T},
     n::Int;
-    opt::MadNLPGPU.CudssSolverOptions = MadNLPGPU.CudssSolverOptions(),
+    opt::CudssSolverOptions = CudssSolverOptions(),
 ) where T
     batch_nzVal = vec(nzvals_mat)
     batch_aug_com = CUSPARSE.CuSparseMatrixCSC(
         aug_com.colPtr, aug_com.rowVal, batch_nzVal, size(aug_com),
     )
-    solver = MadNLPGPU.CUDSSSolver(batch_aug_com; opt=opt)
+    solver = CUDSSSolver(batch_aug_com; opt=opt)
     solver.tril.nzVal = batch_nzVal
     return solver
 end
 
-MadIPM.is_factorized(::MadNLPGPU.CUDSSSolver) = true
+MadIPM.is_factorized(::CUDSSSolver) = true
 
-function MadIPM.factorize_active!(s::MadNLPGPU.CUDSSSolver, active::MadIPM.BatchView)
+function MadIPM.factorize_active!(s::CUDSSSolver, active::MadIPM.BatchView)
     na = MadIPM.local_batch_size(active)
     CUDSS.cudss_set(s.inner, "ubatch_size", na)
     MadNLP.factorize!(s)
     return
 end
 
-function MadIPM.solve_active!(s::MadNLPGPU.CUDSSSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
+function MadIPM.solve_active!(s::CUDSSSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
     na = MadIPM.local_batch_size(active)
     n = size(rhs, 1)
     rhs_active = unsafe_wrap(CuArray{T, 2}, pointer(rhs), (n, na))

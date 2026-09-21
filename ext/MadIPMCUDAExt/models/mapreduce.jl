@@ -14,7 +14,7 @@ _batch_mapreduce_kernel(f::F, op::OP, neutral::T, out, srcs::Tuple{Vararg{Any, N
       val = op(val, f(_src_getindex(srcs, i, j)...))
       i += blockDim().x
     end
-    val = CUDA.reduce_block(op, val, neutral, Val(true))
+    val = CUDACore.reduce_block(op, val, neutral, Val(true))
     if threadIdx().x == 1
       out[1, j] = val
     end
