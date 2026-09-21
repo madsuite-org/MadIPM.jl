@@ -1,5 +1,6 @@
 using Adapt
 using KernelAbstractions
+using CUDSS
 using MadNLPGPU
 
 @testset "MadIPMCUDA" begin
@@ -21,5 +22,6 @@ using MadNLPGPU
         )
         results = MadIPM.solve!(solver)
         @test results.status == MadNLP.SOLVE_SUCCEEDED
+        @test results.objective ≈ 1.0
     end
 end
