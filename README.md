@@ -24,6 +24,7 @@ For instance, you can solve any LP formulated with JuMP by using:
 ```julia
 using JuMP
 using MadIPM
+using MadNLP  # provides the default sparse linear solver (MUMPS)
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
@@ -41,11 +42,14 @@ We detail here how to solve a LP stored in a MPS file `mylp.mps` using [QPSReade
 using QPSReader
 using QuadraticModels
 using MadIPM
+using MadNLP
 
 qpdat = readqps("mylp.mps")
 qp = QuadraticModel(qpdat)
 results = madipm(qp)
 ```
+
+MadIPM depends on MadCore, which has no default sparse linear solver. Load MadNLP, as above, or pass the option `linear_solver` (for example `linear_solver = MadCore.LDLSolver`, which MadIPM always loads).
 
 ### Custom usage
 
