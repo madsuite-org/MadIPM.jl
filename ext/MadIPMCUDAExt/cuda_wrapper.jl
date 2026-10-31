@@ -140,7 +140,11 @@ end
 function MadIPM.factorize_active!(s::MadCore.AbstractLinearSolver, active::MadIPM.BatchView)
     _check_cudss(s)
     na = MadIPM.local_batch_size(active)
-    CUDSS.cudss_set(s.inner, "ubatch_size", na)
+    # Recent cuDSS versions reject a new `ubatch_size` until the next analysis phase.
+    if CUDSS.cudss_get(s.inner, "ubatch_size") != na
+        CUDSS.cudss_set(s.inner, "ubatch_size", na)
+        s.analyzed = false
+    end
     MadCore.factorize!(s)
     return
 end
