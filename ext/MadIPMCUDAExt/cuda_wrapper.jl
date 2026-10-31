@@ -1,10 +1,7 @@
 import LinearAlgebra: BlasFloat
 
-function CUDSSSolver(
-    aug_com::SparseMatrixCSC{T, Cint};
-    opt::CudssSolverOptions = CudssSolverOptions(),
-) where T
-    return CUDSSSolver(CUSPARSE.CuSparseMatrixCSC(aug_com); opt=opt)
+function MadIPM._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMatrixCSC{T, Cint}; opt) where T
+    return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
 @kernel function _transfer_to_map!(dest, to_map, src)
@@ -14,15 +11,15 @@ end
     end
 end
 
-function MadNLP.transfer!(
+function MadCore.transfer!(
     dest::CUSPARSE.CuSparseMatrixCSC{Tv},
-    src::MadNLP.SparseMatrixCOO{Tv},
+    src::MadCore.SparseMatrixCOO{Tv},
     map::CuVector{Int},
 ) where {Tv}
-    return MadNLP._transfer!(dest.nzVal, src.V, map)
+    return MadCore._transfer!(dest.nzVal, src.V, map)
 end
 
-function MadNLP._transfer!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
+function MadCore._transfer!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
     fill!(dest, zero(T))
     if length(map) > 0
         backend = CUDABackend()
@@ -31,13 +28,13 @@ function MadNLP._transfer!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{In
     return
 end
 
-function MadNLP.compress_hessian!(
-    kkt::MadNLP.SparseKKTSystem{T,VT,MT},
+function MadCore.compress_hessian!(
+    kkt::MadCore.SparseKKTSystem{T,VT,MT},
 ) where {T,VT<:CuVector{T},MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
-    MadNLP.transfer!(kkt.hess_com, kkt.hess_raw, kkt.hess_csc_map)
+    MadCore.transfer!(kkt.hess_com, kkt.hess_raw, kkt.hess_csc_map)
 end
 
-function MadNLP.compress_jacobian!(
+function MadCore.compress_jacobian!(
     kkt::MadIPM.NormalKKTSystem{T,VT,MT},
 ) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
     n_slack = length(kkt.ind_ineq)
@@ -117,31 +114,43 @@ MadIPM._rowval(A::CuSparseMatrixCSC) = A.rowVal
 MadIPM._nzval(A::CuSparseMatrixCSC) = A.nzVal
 
 # we introduce a new constructor that takes the nzvals as a matrix explicitly
-function CUDSSSolver(
+function MadIPM.create_batch_linear_solver(
+    ::Type{CUDSSSolver},
     aug_com::CUSPARSE.CuSparseMatrixCSC{T,Cint},
     nzvals_mat::CuMatrix{T},
     n::Int;
-    opt::CudssSolverOptions = CudssSolverOptions(),
+    opt = MadCore.default_options(CUDSSSolver),
 ) where T
     batch_nzVal = vec(nzvals_mat)
     batch_aug_com = CUSPARSE.CuSparseMatrixCSC(
         aug_com.colPtr, aug_com.rowVal, batch_nzVal, size(aug_com),
     )
-    solver = CUDSSSolver(batch_aug_com; opt=opt)
+    solver = MadCore.create_linear_solver(CUDSSSolver, batch_aug_com; opt=opt)
     solver.tril.nzVal = batch_nzVal
     return solver
 end
 
-MadIPM.is_factorized(::CUDSSSolver) = true
-
-function MadIPM.factorize_active!(s::CUDSSSolver, active::MadIPM.BatchView)
-    na = MadIPM.local_batch_size(active)
-    CUDSS.cudss_set(s.inner, "ubatch_size", na)
-    MadNLP.factorize!(s)
+# The uniform batch solver on CUDA arrays is cuDSS.
+function _check_cudss(s)
+    (hasproperty(s, :inner) && s.inner isa CUDSS.CudssSolver) ||
+        throw(ArgumentError("$(typeof(s)) does not support batch solves on CUDA arrays; use CUDSSSolver"))
     return
 end
 
-function MadIPM.solve_active!(s::CUDSSSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
+function MadIPM.factorize_active!(s::MadCore.AbstractLinearSolver, active::MadIPM.BatchView)
+    _check_cudss(s)
+    na = MadIPM.local_batch_size(active)
+    # Recent cuDSS versions reject a new `ubatch_size` until the next analysis phase.
+    if CUDSS.cudss_get(s.inner, "ubatch_size") != na
+        CUDSS.cudss_set(s.inner, "ubatch_size", na)
+        s.analyzed = false
+    end
+    MadCore.factorize!(s)
+    return
+end
+
+function MadIPM.solve_active!(s::MadCore.AbstractLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
+    _check_cudss(s)
     na = MadIPM.local_batch_size(active)
     n = size(rhs, 1)
     rhs_active = unsafe_wrap(CuArray{T, 2}, pointer(rhs), (n, na))
@@ -150,3 +159,7 @@ function MadIPM.solve_active!(s::CUDSSSolver{T}, rhs::CuMatrix{T}, active::MadIP
     CUDSS.cudss("solve", s.inner, s.x_gpu, s.b_gpu, asynchronous=s.opt.cudss_asynchronous)
     return
 end
+
+# Disambiguation with the method for CPU and looped solvers.
+MadIPM.solve_active!(s::MadIPM.LoopedBatchLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T =
+    invoke(MadIPM.solve_active!, Tuple{MadIPM.LoopedBatchLinearSolver{T}, AbstractMatrix{T}, MadIPM.BatchView}, s, rhs, active)

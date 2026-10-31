@@ -24,6 +24,7 @@ For instance, you can solve any LP formulated with JuMP by using:
 ```julia
 using JuMP
 using MadIPM
+using MadNLP  # provides the default sparse linear solver (MUMPS)
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
@@ -41,11 +42,14 @@ We detail here how to solve a LP stored in a MPS file `mylp.mps` using [QPSReade
 using QPSReader
 using QuadraticModels
 using MadIPM
+using MadNLP
 
 qpdat = readqps("mylp.mps")
 qp = QuadraticModel(qpdat)
 results = madipm(qp)
 ```
+
+MadIPM depends on MadCore, which has no default sparse linear solver. Load MadNLP, as above, or pass the option `linear_solver` (for example `linear_solver = MadCore.LDLSolver` after `import MadCore`; MadIPM always loads LDLFactorizations).
 
 ### Custom usage
 
@@ -66,7 +70,7 @@ It requires specifying your problem in a `QuadraticProblem` first.
 
 The data are moved to the GPU using:
 ```julia
-using CUDA, KernelAbstractions, MadNLPGPU
+using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
 using MadIPM
 
 qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
@@ -74,7 +78,7 @@ qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
 Then, you can pass the problem `qp_gpu` to MadIPM by switching
 the linear solver to NVIDIA cuDSS:
 ```julia
-solver = MPCSolver(qp_gpu; linear_solver=MadNLPGPU.CUDSSSolver)
+solver = MPCSolver(qp_gpu; linear_solver=MadCoreGPU.CUDSSSolver)
 results = MadIPM.solve!(solver)
 ```
 As a result, all the solution happens on the GPU, with minimum data transfer
@@ -84,12 +88,12 @@ If you have a JUMP model, just set the array type for CUDA arrays:
 ```julia
 using JuMP
 using MadIPM
-using CUDA, KernelAbstractions, MadNLPGPU
+using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
 set_optimizer_attribute(model, "array_type", CuVector{Float64})
-set_optimizer_attribute(model, "linear_solver", MadNLPGPU.CUDSSSolver)
+set_optimizer_attribute(model, "linear_solver", MadCoreGPU.CUDSSSolver)
 
 @variable(model, 0 <= x[1:10], start=0.5)
 @constraint(model, sum(x) == 1.0)

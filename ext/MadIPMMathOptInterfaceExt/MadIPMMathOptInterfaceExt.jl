@@ -17,7 +17,7 @@ using Adapt
 using MathOptInterface
 using SparseMatricesCOO: SparseMatrixCOO
 import NLPModels
-import MadNLP
+import MadCore
 import MadIPM
 import MadIPM.Models: LinearModel, QuadraticModel, LPData, QPData
 

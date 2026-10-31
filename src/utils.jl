@@ -48,32 +48,17 @@ mutable struct AdaptiveRegularization{T} <: AbstractRegularization
 end
 
 #=
-    Utils for linear solvers
-=#
-
-function is_factorized(::MadNLP.AbstractLinearSolver)
-    return true # assume the system is factorized by default
-end
-function is_factorized(lin_solver::MadNLP.LDLSolver)
-    return LDLFactorizations.factorized(lin_solver.inner)
-end
-function is_factorized(lin_solver::MadNLP.CHOLMODSolver)
-    return issuccess(lin_solver.inner)
-end
-
-
-#=
     Options
 =#
 
-@kwdef mutable struct IPMOptions <: MadNLP.AbstractOptions
+@kwdef mutable struct IPMOptions <: MadCore.AbstractOptions
     tol::Float64
     kkt_system::Type
     linear_solver::Type
     # Output options
     output_file::String = ""
-    print_level::MadNLP.LogLevels = MadNLP.INFO
-    file_print_level::MadNLP.LogLevels = MadNLP.INFO
+    print_level::MadCore.LogLevels = MadCore.INFO
+    file_print_level::MadCore.LogLevels = MadCore.INFO
     rethrow_error::Bool = false
     # Termination options
     max_iter::Int = 3000
@@ -85,11 +70,11 @@ end
     dual_infeasibility_cert_tol::Float64 = 1e-7
     kappa_d::Float64 = 1e-5
     fixed_variable_treatment::Type =
-        kkt_system <: MadNLP.SparseCondensedKKTSystem ? MadNLP.RelaxBound :
-        MadNLP.MakeParameter
+        kkt_system <: MadCore.SparseCondensedKKTSystem ? MadCore.RelaxBound :
+        MadCore.MakeParameter
     equality_treatment::Type =
-        kkt_system <: MadNLP.SparseCondensedKKTSystem ? MadNLP.RelaxEquality :
-        MadNLP.EnforceEquality
+        kkt_system <: MadCore.SparseCondensedKKTSystem ? MadCore.RelaxEquality :
+        MadCore.EnforceEquality
     # initialization options
     scaling::Bool = true
     nlp_scaling_max_gradient::Float64 = 100.0
@@ -116,40 +101,40 @@ end
 # smart option presets
 function IPMOptions(
     nlp::NLPModels.AbstractNLPModel{T};
-    kkt_system = MadNLP.SparseKKTSystem,
-    linear_solver = MadNLP.default_sparse_solver(nlp),
+    kkt_system = MadCore.SparseKKTSystem,
+    linear_solver = MadCore.default_sparse_solver(nlp),
     tol = 1e-8,
 ) where {T}
     return IPMOptions(tol = tol, kkt_system = kkt_system, linear_solver = linear_solver)
 end
 
 function load_options(nlp; options...)
-    primary_opt, options = MadNLP._get_primary_options(options)
+    primary_opt, options = MadCore._get_primary_options(options)
 
     # Initiate interior-point options
     opt_ipm = IPMOptions(nlp; primary_opt...)
-    linear_solver_options = MadNLP.set_options!(opt_ipm, options)
+    linear_solver_options = MadCore.set_options!(opt_ipm, options)
     # Initiate linear-solver options
-    opt_linear_solver = MadNLP.default_options(opt_ipm.linear_solver)
-    remaining_options = MadNLP.set_options!(opt_linear_solver, linear_solver_options)
+    opt_linear_solver = MadCore.default_options(opt_ipm.linear_solver)
+    remaining_options = MadCore.set_options!(opt_linear_solver, linear_solver_options)
 
     # Initiate logger
-    logger = MadNLP.MadNLPLogger(
+    logger = MadCore.MadNLPLogger(
         print_level = opt_ipm.print_level,
         file_print_level = opt_ipm.file_print_level,
         file = opt_ipm.output_file == "" ? nothing : open(opt_ipm.output_file, "w+"),
     )
-    MadNLP.@trace(logger, "Logger is initialized.")
+    MadCore.@trace(logger, "Logger is initialized.")
 
     # Print remaning options (unsupported)
     if !isempty(remaining_options)
-        MadNLP.print_ignored_options(logger, remaining_options)
+        MadCore.print_ignored_options(logger, remaining_options)
     end
     return (interior_point = opt_ipm, linear_solver = opt_linear_solver, logger = logger)
 end
 
-function update_solution!(stats::MadNLP.MadNLPExecutionStats{T}, solver) where {T}
-    MadNLP.update!(stats, solver)
+function update_solution!(stats::MadCore.MadNLPExecutionStats{T}, solver) where {T}
+    MadCore.update!(stats, solver)
     return
 end
 
@@ -198,7 +183,7 @@ function coo_to_csr(
     return (Bp, Bj, Bx)
 end
 
-function coo_to_csr(A::MadNLP.SparseMatrixCOO)
+function coo_to_csr(A::MadCore.SparseMatrixCOO)
     return coo_to_csr(A.m, A.n, A.I, A.J, A.V)
 end
 
@@ -507,3 +492,19 @@ function standard_form_qp(qp::_BQMScalarModel)
         )
     end
 end
+
+#=
+    Building linear solvers
+=#
+
+# Build the linear solver `linear_solver` for the matrix `A`. The CUDA extension adds a
+# method that moves a host matrix to the device for cuDSS.
+_build_linear_solver(linear_solver, A; opt) = MadCore.create_linear_solver(linear_solver, A; opt = opt)
+
+"""
+    create_batch_linear_solver(linear_solver::Type, aug_com, nzvals_mat, n; opt)
+
+Build the batch linear solver `linear_solver` for the batch of matrices with the
+sparsity pattern of `aug_com` and the values in the columns of `nzvals_mat`.
+"""
+function create_batch_linear_solver end

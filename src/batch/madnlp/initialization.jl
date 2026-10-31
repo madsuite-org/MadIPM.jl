@@ -1,4 +1,4 @@
-function MadNLP.set_initial_bounds!(
+function MadCore.set_initial_bounds!(
     xl::AbstractMatrix{T},
     xu::AbstractMatrix{T},
     tol,
@@ -9,7 +9,7 @@ function MadNLP.set_initial_bounds!(
     end
 end
 
-function MadNLP.initialize!(
+function MadCore.initialize!(
     bcb::UniformBatchCallback{T},
     x,
     xl,
@@ -22,37 +22,36 @@ function MadNLP.initialize!(
     bound_push = 1e-2,
     bound_fac = 1e-2,
 ) where {T}
-    x0 = MadNLP.variable(x)
-    lvar = MadNLP.variable(xl)
-    uvar = MadNLP.variable(xu)
+    x0 = MadCore.variable(x)
+    lvar = MadCore.variable(xl)
+    uvar = MadCore.variable(xu)
 
-    x0 .= MadNLP.get_x0(bcb)
-    lvar .= MadNLP.get_lvar(bcb)
-    uvar .= MadNLP.get_uvar(bcb)
-    y .= MadNLP.get_y0(bcb)
-    lcon = copy(MadNLP.get_lcon(bcb))
-    ucon = copy(MadNLP.get_ucon(bcb))
+    x0 .= MadCore.get_x0(bcb)
+    lvar .= MadCore.get_lvar(bcb)
+    uvar .= MadCore.get_uvar(bcb)
+    y .= MadCore.get_y0(bcb)
+    lcon = copy(MadCore.get_lcon(bcb))
+    ucon = copy(MadCore.get_ucon(bcb))
 
-    MadNLP._treat_equality_initialize!(bcb.equality_handler, lcon, ucon, tol)
-    MadNLP._treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadNLP.AbstractCallback. will need to be adjust for batchdensecallback
+    MadCore._treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadCore.AbstractCallback. will need to be adjust for batchdensecallback
 
-    MadNLP.set_initial_bounds!(lvar, uvar, tol)
-    x0 .= MadNLP._initialize_variables!.(x0, lvar, uvar, bound_push, bound_fac)
+    MadCore.set_initial_bounds!(lvar, uvar, tol)
+    x0 .= MadCore._initialize_variables!.(x0, lvar, uvar, bound_push, bound_fac)
 
-    x_full = MadNLP._update_x!(bcb, x0)
+    x_full = MadCore._update_x!(bcb, x0)
     copyto!(bx_buffer, x_full)
-    MadNLP._eval_cons_wrapper!(bcb, bx_buffer, bcb.con_buffer)
+    MadCore._eval_cons_wrapper!(bcb, bx_buffer, bcb.con_buffer)
 
-    MadNLP.slack(xl) .= view(lcon, ind_ineq, :)
-    MadNLP.slack(xu) .= view(ucon, ind_ineq, :)
-    rhs .= (lcon .== ucon) .* lcon
-    copyto!(MadNLP.slack(x), view(bcb.con_buffer, ind_ineq, :))
+    MadCore.slack(xl) .= view(lcon, ind_ineq, :)
+    MadCore.slack(xu) .= view(ucon, ind_ineq, :)
+    MadCore._treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
+    copyto!(MadCore.slack(x), view(bcb.con_buffer, ind_ineq, :))
 
-    MadNLP.set_initial_bounds!(MadNLP.slack(xl), MadNLP.slack(xu), tol)
-    MadNLP.slack(x) .= MadNLP._initialize_variables!.(
-        MadNLP.slack(x),
-        MadNLP.slack(xl),
-        MadNLP.slack(xu),
+    MadCore.set_initial_bounds!(MadCore.slack(xl), MadCore.slack(xu), tol)
+    MadCore.slack(x) .= MadCore._initialize_variables!.(
+        MadCore.slack(x),
+        MadCore.slack(xl),
+        MadCore.slack(xu),
         bound_push,
         bound_fac,
     )
@@ -60,19 +59,19 @@ function MadNLP.initialize!(
     return
 end
 
-function MadNLP.set_con_scale_sparse!(
+function MadCore.set_con_scale_sparse!(
     con_scale::MT,
     jac_I,
     jac_buffer,
     max_gradient,
 ) where {T,MT<:AbstractMatrix{T}}
     fill!(con_scale, one(T))
-    MadNLP._set_con_scale_sparse!(con_scale, jac_I, jac_buffer)
+    MadCore._set_con_scale_sparse!(con_scale, jac_I, jac_buffer)
     con_scale .= min.(one(T), max_gradient ./ con_scale)
     return con_scale
 end
 
-function MadNLP._set_con_scale_sparse!(
+function MadCore._set_con_scale_sparse!(
     con_scale::MT,
     jac_I,
     jac_buffer,
@@ -88,7 +87,7 @@ function MadNLP._set_con_scale_sparse!(
     return con_scale
 end
 
-function MadNLP.set_jac_scale_sparse!(
+function MadCore.set_jac_scale_sparse!(
     jac_scale::MT,
     con_scale,
     jac_I,
@@ -96,7 +95,7 @@ function MadNLP.set_jac_scale_sparse!(
     return copyto!(jac_scale, @view(con_scale[jac_I, :]))
 end
 
-function MadNLP.set_obj_scale!(
+function MadCore.set_obj_scale!(
     obj_scale,
     F::MT,
     max_gradient,
@@ -104,7 +103,7 @@ function MadNLP.set_obj_scale!(
     return obj_scale .= min.(one(T), max_gradient ./ maximum(abs, F; dims = 1))
 end
 
-function MadNLP.set_scaling!(
+function MadCore.set_scaling!(
     cb::UniformBatchCallback,
     x,
     xl,
@@ -115,22 +114,22 @@ function MadNLP.set_scaling!(
     nlp_scaling_max_gradient,
     bx_buffer,
 )
-    x0 = MadNLP.variable(x)
-    x_full = MadNLP._update_x!(cb, x0)
+    x0 = MadCore.variable(x)
+    x_full = MadCore._update_x!(cb, x0)
     copyto!(bx_buffer, x_full)
 
-    jac_free = MadNLP._eval_jac_wrapper!(cb, bx_buffer, cb.jac_buffer)
-    MadNLP.set_con_scale_sparse!(cb.con_scale, cb.jac_I, jac_free, nlp_scaling_max_gradient)
-    MadNLP.set_jac_scale_sparse!(cb.jac_scale, cb.con_scale, cb.jac_I)
+    jac_free = MadCore._eval_jac_wrapper!(cb, bx_buffer, cb.jac_buffer)
+    MadCore.set_con_scale_sparse!(cb.con_scale, cb.jac_I, jac_free, nlp_scaling_max_gradient)
+    MadCore.set_jac_scale_sparse!(cb.jac_scale, cb.con_scale, cb.jac_I)
 
-    MadNLP._eval_grad_f_wrapper!(cb, bx_buffer, cb.grad_buffer)
-    MadNLP.set_obj_scale!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
+    MadCore._eval_grad_f_wrapper!(cb, bx_buffer, cb.grad_buffer)
+    MadCore.set_obj_scale!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
 
     con_scale_slk = @view(cb.con_scale[ind_ineq, :])
     y ./= cb.con_scale
     rhs .*= cb.con_scale
-    MadNLP.slack(x) .*= con_scale_slk
-    MadNLP.slack(xl) .*= con_scale_slk
-    MadNLP.slack(xu) .*= con_scale_slk
+    MadCore.slack(x) .*= con_scale_slk
+    MadCore.slack(xl) .*= con_scale_slk
+    MadCore.slack(xu) .*= con_scale_slk
     return
 end

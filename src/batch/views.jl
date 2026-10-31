@@ -122,7 +122,7 @@ function exclude_local!(state::BatchViewState, exclude_mask::AbstractVector{Bool
 end
 
 function BatchViewState(bcb, batch_size::Int; max_layers::Int = 4)
-    sample_dev = MadNLP.create_array(bcb, Int32, batch_size)
+    sample_dev = MadCore.create_array(bcb, Int32, batch_size)
     views = Vector{BatchView{typeof(sample_dev)}}(undef, max_layers)
     @inbounds for layer = 1:max_layers
         views[layer] = BatchView(
@@ -131,7 +131,7 @@ function BatchViewState(bcb, batch_size::Int; max_layers::Int = 4)
             0,
             Vector{Int32}(undef, batch_size),
             Vector{Int32}(undef, batch_size),
-            layer == 1 ? sample_dev : MadNLP.create_array(bcb, Int32, batch_size),
+            layer == 1 ? sample_dev : MadCore.create_array(bcb, Int32, batch_size),
         )
     end
     _init_batch_view!(views[1], batch_size)

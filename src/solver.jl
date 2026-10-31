@@ -3,8 +3,8 @@
     Initialization
 =#
 
-function init_starting_point!(solver::MadNLP.AbstractMadNLPSolver)
-    x = MadNLP.primal(solver.x)
+function init_starting_point!(solver::MadCore.AbstractMadNLPSolver)
+    x = MadCore.primal(solver.x)
     l, u = solver.xl.values, solver.xu.values
     lb, ub = solver.xl_r, solver.xu_r
     zl, zu = solver.zl_r, solver.zu_r
@@ -18,25 +18,25 @@ function init_starting_point!(solver::MadNLP.AbstractMadNLPSolver)
     solver.kkt.du_diag .= solver.del_c
 
     # Step 0: factorize initial KKT system
-    MadNLP.factorize_wrapper!(solver)
+    MadCore.factorize_wrapper!(solver)
 
     # Step 1: Compute initial primal variable as x0 = x + dx, with dx the
     #         least square solution of the system A * dx = (b - A*x)
     set_initial_primal_rhs!(solver)
     solve_system!(solver.d, solver, solver.p)
     # x0 = x + dx
-    axpy!(1.0, MadNLP.primal(solver.d), x)
+    axpy!(1.0, MadCore.primal(solver.d), x)
 
     # Step 2: Compute initial dual variable as the least square solution of A' * y = -f
     set_initial_dual_rhs!(solver)
     solve_system!(solver.d, solver, solver.p)
-    solver.y .= MadNLP.dual(solver.d)
+    solver.y .= MadCore.dual(solver.d)
 
     # Step 3: init bounds multipliers using c + A' * y - zl + zu = 0
     # A' * y
-    MadNLP.jtprod!(res, solver.kkt, solver.y)
+    MadCore.jtprod!(res, solver.kkt, solver.y)
     # A'*y + c
-    axpy!(1.0, MadNLP.primal(solver.f), res)
+    axpy!(1.0, MadCore.primal(solver.f), res)
     # Initialize bounds multipliers
     map!(
         (r_, l_, u_, zl_) -> begin
@@ -127,11 +127,11 @@ function init_starting_point!(solver::MadNLP.AbstractMadNLPSolver)
     return
 end
 
-function initialize!(solver::MadNLP.AbstractMadNLPSolver{T}) where {T}
+function initialize!(solver::MadCore.AbstractMadNLPSolver{T}) where {T}
     opt = solver.opt
 
     # Ensure the initial point is inside its bounds
-    MadNLP.initialize!(
+    MadCore.initialize!(
         solver.cb,
         solver.x,
         solver.xl,
@@ -149,7 +149,7 @@ function initialize!(solver::MadNLP.AbstractMadNLPSolver{T}) where {T}
     # Initializing scaling factors
     # TODO: Implement Ruiz equilibration scaling here
     if opt.scaling
-        MadNLP.set_scaling!(
+        MadCore.set_scaling!(
             solver.cb,
             solver.x,
             solver.xl,
@@ -162,19 +162,19 @@ function initialize!(solver::MadNLP.AbstractMadNLPSolver{T}) where {T}
     end
 
     # Initializing KKT system
-    MadNLP.initialize!(solver.kkt)
+    MadCore.initialize!(solver.kkt)
     init_regularization!(solver, solver.opt.regularization)
 
     # Initializing callbacks
-    solver.obj_val = MadNLP.eval_f_wrapper(solver, solver.x)
-    MadNLP.eval_jac_wrapper!(solver, solver.kkt, solver.x)
-    MadNLP.eval_grad_f_wrapper!(solver, solver.f, solver.x)
-    MadNLP.eval_cons_wrapper!(solver, solver.c, solver.x)
-    MadNLP.eval_lag_hess_wrapper!(solver, solver.kkt, solver.x, solver.y)
+    solver.obj_val = MadCore.eval_f_wrapper(solver, solver.x)
+    MadCore.eval_jac_wrapper!(solver, solver.kkt, solver.x)
+    MadCore.eval_grad_f_wrapper!(solver, solver.f, solver.x)
+    MadCore.eval_cons_wrapper!(solver, solver.c, solver.x)
+    MadCore.eval_lag_hess_wrapper!(solver, solver.kkt, solver.x, solver.y)
 
     # Normalization factors
     solver.norm_b = norm(solver.rhs, Inf)
-    solver.norm_c = norm(MadNLP.primal(solver.f), Inf)
+    solver.norm_c = norm(MadCore.primal(solver.f), Inf)
 
     # Find initial position
     init_starting_point!(solver)
@@ -185,23 +185,23 @@ function initialize!(solver::MadNLP.AbstractMadNLPSolver{T}) where {T}
 
     solver.best_complementarity = typemax(typeof(solver.best_complementarity))
 
-    solver.status = MadNLP.REGULAR
+    solver.status = MadCore.REGULAR
 
-    MadNLP.jtprod!(solver.jacl, solver.kkt, solver.y)
+    MadCore.jtprod!(solver.jacl, solver.kkt, solver.y)
     return
 end
 
 #=
     MPC Algorithm
 =#
-function update_termination_criteria!(solver::MadNLP.AbstractMadNLPSolver)
+function update_termination_criteria!(solver::MadCore.AbstractMadNLPSolver)
     dobj = dual_objective(solver) # dual objective
-    solver.inf_pr = MadNLP.get_inf_pr(solver.c) / max(1.0, solver.norm_b)
+    solver.inf_pr = MadCore.get_inf_pr(solver.c) / max(1.0, solver.norm_b)
     solver.inf_du =
-        MadNLP.get_inf_du(
-            MadNLP.full(solver.f),
-            MadNLP.full(solver.zl),
-            MadNLP.full(solver.zu),
+        MadCore.get_inf_du(
+            MadCore.full(solver.f),
+            MadCore.full(solver.zl),
+            MadCore.full(solver.zu),
             solver.jacl,
             1.0,
         ) / max(1.0, solver.norm_c)
@@ -210,34 +210,34 @@ function update_termination_criteria!(solver::MadNLP.AbstractMadNLPSolver)
     iter = solver.cnt.k
 
     if max(solver.inf_pr, solver.inf_du, solver.inf_compl) <= solver.opt.tol
-        solver.status = MadNLP.SOLVE_SUCCEEDED
+        solver.status = MadCore.SOLVE_SUCCEEDED
     elseif (iter >= 3) && has_primal_infeasibility_certificate(solver)
-        solver.status = MadNLP.INFEASIBLE_PROBLEM_DETECTED
+        solver.status = MadCore.INFEASIBLE_PROBLEM_DETECTED
     elseif (iter >= 3) && has_dual_infeasibility_certificate(solver)
-        solver.status = MadNLP.DIVERGING_ITERATES  # TODO: MadNLP.UNBOUNDED_PROBLEM_DETECTED?
+        solver.status = MadCore.DIVERGING_ITERATES  # TODO: MadCore.UNBOUNDED_PROBLEM_DETECTED?
     elseif ((solver.inf_compl > solver.opt.divergence_tol * solver.best_complementarity) &&
             (dobj > max(solver.opt.divergence_scale * abs(solver.obj_val), 1.0)))
-        solver.status = MadNLP.INFEASIBLE_PROBLEM_DETECTED
+        solver.status = MadCore.INFEASIBLE_PROBLEM_DETECTED
     elseif solver.obj_val <
            - solver.opt.divergence_tol * max(solver.opt.divergence_scale * abs(dobj), 1.0)
-        solver.status = MadNLP.DIVERGING_ITERATES
+        solver.status = MadCore.DIVERGING_ITERATES
     elseif iter >= solver.opt.max_iter
-        solver.status = MadNLP.MAXIMUM_ITERATIONS_EXCEEDED
+        solver.status = MadCore.MAXIMUM_ITERATIONS_EXCEEDED
     elseif time()-solver.cnt.start_time >= solver.opt.max_wall_time
-        solver.status = MadNLP.MAXIMUM_WALLTIME_EXCEEDED
+        solver.status = MadCore.MAXIMUM_WALLTIME_EXCEEDED
     else
         # Continue iterating - status remains unchanged
     end
     return
 end
 
-function affine_direction!(solver::MadNLP.AbstractMadNLPSolver)
+function affine_direction!(solver::MadCore.AbstractMadNLPSolver)
     set_predictive_rhs!(solver, solver.kkt)
     solve_system!(solver.d, solver, solver.p)
     return
 end
 
-function prediction_step!(solver::MadNLP.AbstractMadNLPSolver)
+function prediction_step!(solver::MadCore.AbstractMadNLPSolver)
     affine_direction!(solver)
     alpha_aff_p, alpha_aff_d = get_fraction_to_boundary_step(solver, 1.0)
     mu_affine = get_affine_complementarity_measure(solver, alpha_aff_p, alpha_aff_d)
@@ -329,31 +329,31 @@ function update_step_size!(solver)
     update_step!(solver.opt.step_rule, solver)
     return
 end
-function apply_step!(solver::MadNLP.AbstractMadNLPSolver)
-    axpy!(solver.alpha_p, MadNLP.primal(solver.d), MadNLP.primal(solver.x))
-    axpy!(solver.alpha_d, MadNLP.dual(solver.d), solver.y)
-    solver.zl_r .+= solver.alpha_d .* MadNLP.dual_lb(solver.d)
-    solver.zu_r .+= solver.alpha_d .* MadNLP.dual_ub(solver.d)
-    MadNLP.adjust_boundary!(solver.x_lr, solver.xl_r, solver.x_ur, solver.xu_r, solver.mu)
+function apply_step!(solver::MadCore.AbstractMadNLPSolver)
+    axpy!(solver.alpha_p, MadCore.primal(solver.d), MadCore.primal(solver.x))
+    axpy!(solver.alpha_d, MadCore.dual(solver.d), solver.y)
+    solver.zl_r .+= solver.alpha_d .* MadCore.dual_lb(solver.d)
+    solver.zu_r .+= solver.alpha_d .* MadCore.dual_ub(solver.d)
+    MadCore.adjust_boundary!(solver.x_lr, solver.xl_r, solver.x_ur, solver.xu_r, solver.mu)
 
     solver.cnt.k += 1
     return
 end
 
-function evaluate_model!(solver::MadNLP.AbstractMadNLPSolver)
-    solver.obj_val = MadNLP.eval_f_wrapper(solver, solver.x)
-    MadNLP.eval_cons_wrapper!(solver, solver.c, solver.x)
-    MadNLP.eval_grad_f_wrapper!(solver, solver.f, solver.x)
+function evaluate_model!(solver::MadCore.AbstractMadNLPSolver)
+    solver.obj_val = MadCore.eval_f_wrapper(solver, solver.x)
+    MadCore.eval_cons_wrapper!(solver, solver.c, solver.x)
+    MadCore.eval_grad_f_wrapper!(solver, solver.f, solver.x)
     # A' y
-    MadNLP.jtprod!(solver.jacl, solver.kkt, solver.y)
+    MadCore.jtprod!(solver.jacl, solver.kkt, solver.y)
     return
 end
 function is_done(solver)
-    return solver.status != MadNLP.REGULAR
+    return solver.status != MadCore.REGULAR
 end
 
 # One iteration of Predictor-corrector method
-function mpc_step!(solver::MadNLP.AbstractMadNLPSolver)
+function mpc_step!(solver::MadCore.AbstractMadNLPSolver)
     # Factorize KKT system
     factorize_system!(solver)
 
@@ -376,71 +376,71 @@ function mpc_step!(solver::MadNLP.AbstractMadNLPSolver)
     evaluate_model!(solver)
 end
 
-function mpc!(solver::MadNLP.AbstractMadNLPSolver)
+function mpc!(solver::MadCore.AbstractMadNLPSolver)
     while true
         update_termination_criteria!(solver)
-        MadNLP.print_iter(solver)
+        MadCore.print_iter(solver)
         is_done(solver) && return
         mpc_step!(solver)
     end
 end
 
-solve!(solver::MadNLP.AbstractMadNLPSolver; kwargs...) =
-    solve!(solver, MadNLP.MadNLPExecutionStats(solver); kwargs...)
+solve!(solver::MadCore.AbstractMadNLPSolver; kwargs...) =
+    solve!(solver, MadCore.MadNLPExecutionStats(solver); kwargs...)
 function solve!(
-    solver::MadNLP.AbstractMadNLPSolver,
-    stats::MadNLP.MadNLPExecutionStats;
+    solver::MadCore.AbstractMadNLPSolver,
+    stats::MadCore.MadNLPExecutionStats;
     kwargs...,
 )
     nlp = solver.nlp
 
     if !isempty(kwargs)
-        MadNLP.set_options!(solver.opt, kwargs)
+        MadCore.set_options!(solver.opt, kwargs)
     end
 
     try
-        MadNLP.@notice(
+        MadCore.@notice(
             solver.logger,
-            "This is MadIPM, running with $(MadNLP.introduce(solver.kkt.linear_solver))\n"
+            "This is MadIPM, running with $(MadCore.introduce(solver.kkt.linear_solver))\n"
         )
-        # MadNLP.print_init(solver)
+        # MadCore.print_init(solver)
         initialize!(solver)
         mpc!(solver)
     catch e
-        if e isa MadNLP.InvalidNumberException
+        if e isa MadCore.InvalidNumberException
             if e.callback == :obj
-                solver.status=MadNLP.INVALID_NUMBER_OBJECTIVE
+                solver.status=MadCore.INVALID_NUMBER_OBJECTIVE
             elseif e.callback == :grad
-                solver.status=MadNLP.INVALID_NUMBER_GRADIENT
+                solver.status=MadCore.INVALID_NUMBER_GRADIENT
             elseif e.callback == :cons
-                solver.status=MadNLP.INVALID_NUMBER_CONSTRAINTS
+                solver.status=MadCore.INVALID_NUMBER_CONSTRAINTS
             elseif e.callback == :jac
-                solver.status=MadNLP.INVALID_NUMBER_JACOBIAN
+                solver.status=MadCore.INVALID_NUMBER_JACOBIAN
             elseif e.callback == :hess
-                solver.status=MadNLP.INVALID_NUMBER_HESSIAN_LAGRANGIAN
+                solver.status=MadCore.INVALID_NUMBER_HESSIAN_LAGRANGIAN
             else
-                solver.status=MadNLP.INVALID_NUMBER_DETECTED
+                solver.status=MadCore.INVALID_NUMBER_DETECTED
             end
-        elseif e isa MadNLP.NotEnoughDegreesOfFreedomException
-            solver.status=MadNLP.NOT_ENOUGH_DEGREES_OF_FREEDOM
-        elseif e isa MadNLP.LinearSolverException
-            solver.status=MadNLP.ERROR_IN_STEP_COMPUTATION;
+        elseif e isa MadCore.NotEnoughDegreesOfFreedomException
+            solver.status=MadCore.NOT_ENOUGH_DEGREES_OF_FREEDOM
+        elseif e isa MadCore.LinearSolverException
+            solver.status=MadCore.ERROR_IN_STEP_COMPUTATION;
             solver.opt.rethrow_error && rethrow(e)
         elseif e isa InterruptException
-            solver.status=MadNLP.USER_REQUESTED_STOP
+            solver.status=MadCore.USER_REQUESTED_STOP
             solver.opt.rethrow_error && rethrow(e)
         else
-            solver.status=MadNLP.INTERNAL_ERROR
+            solver.status=MadCore.INTERNAL_ERROR
             solver.opt.rethrow_error && rethrow(e)
         end
     finally
         solver.cnt.total_time = time() - solver.cnt.start_time
-        if !(solver.status < MadNLP.SOLVE_SUCCEEDED)
-            MadNLP.print_summary(solver)
+        if !(solver.status < MadCore.SOLVE_SUCCEEDED)
+            MadCore.print_summary(solver)
         end
-        MadNLP.@notice(
+        MadCore.@notice(
             solver.logger,
-            "EXIT: $(MadNLP.get_status_output(solver.status, solver.opt))"
+            "EXIT: $(MadCore.get_status_output(solver.status, solver.opt))"
         )
         finalize(solver.logger)
 
