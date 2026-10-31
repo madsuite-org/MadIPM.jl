@@ -49,7 +49,7 @@ qp = QuadraticModel(qpdat)
 results = madipm(qp)
 ```
 
-MadIPM depends on MadCore, which has no default sparse linear solver. Load MadNLP, as above, or pass the option `linear_solver` (for example `linear_solver = MadCore.LDLSolver`, which MadIPM always loads).
+MadIPM depends on MadCore, which has no default sparse linear solver. Load MadNLP, as above, or pass the option `linear_solver` (for example `linear_solver = MadCore.LDLSolver` after `import MadCore`; MadIPM always loads LDLFactorizations).
 
 ### Custom usage
 
