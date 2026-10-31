@@ -697,8 +697,8 @@ include("fakels.jl")
             MadIPM._update_active_mask!(bad)
             MadIPM.factorize_system!(bad)
 
-            @test MadIPM.is_factorized(bad.kkt.batch_solver.solvers[1])
-            @test MadIPM.is_factorized(bad.kkt.batch_solver.solvers[2])
+            @test MadNLP.is_factorized(bad.kkt.batch_solver.solvers[1])
+            @test MadNLP.is_factorized(bad.kkt.batch_solver.solvers[2])
 
             MadIPM.set_predictive_rhs!(bad, bad.kkt)
             copyto!(MadNLP.full(bad.d), MadNLP.full(bad.p))
@@ -716,7 +716,7 @@ include("fakels.jl")
 
             bad = _mk(fail_positions = Set([3]), fail_remaining = 1)
             MadIPM.factorize_system!(bad)
-            @test all(MadIPM.is_factorized(bad.kkt.batch_solver.solvers[j]) for j = 1:3)
+            @test all(MadNLP.is_factorized(bad.kkt.batch_solver.solvers[j]) for j = 1:3)
 
             MadIPM.set_predictive_rhs!(bad, bad.kkt)
             copyto!(MadNLP.full(bad.d), MadNLP.full(bad.p))

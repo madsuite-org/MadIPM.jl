@@ -66,7 +66,7 @@ It requires specifying your problem in a `QuadraticProblem` first.
 
 The data are moved to the GPU using:
 ```julia
-using CUDA, KernelAbstractions, MadNLPGPU
+using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
 using MadIPM
 
 qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
@@ -74,7 +74,7 @@ qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
 Then, you can pass the problem `qp_gpu` to MadIPM by switching
 the linear solver to NVIDIA cuDSS:
 ```julia
-solver = MPCSolver(qp_gpu; linear_solver=MadNLPGPU.CUDSSSolver)
+solver = MPCSolver(qp_gpu; linear_solver=MadCoreGPU.CUDSSSolver)
 results = MadIPM.solve!(solver)
 ```
 As a result, all the solution happens on the GPU, with minimum data transfer
@@ -84,12 +84,12 @@ If you have a JUMP model, just set the array type for CUDA arrays:
 ```julia
 using JuMP
 using MadIPM
-using CUDA, KernelAbstractions, MadNLPGPU
+using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
 set_optimizer_attribute(model, "array_type", CuVector{Float64})
-set_optimizer_attribute(model, "linear_solver", MadNLPGPU.CUDSSSolver)
+set_optimizer_attribute(model, "linear_solver", MadCoreGPU.CUDSSSolver)
 
 @variable(model, 0 <= x[1:10], start=0.5)
 @constraint(model, sum(x) == 1.0)

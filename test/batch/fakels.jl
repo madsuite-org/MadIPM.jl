@@ -27,7 +27,8 @@ function FailOnDemandLS(
         nzval_i =
             MadIPM._madnlp_unsafe_column_wrap(nzvals_mat, nnz_csc, (i-1)*nnz_csc+1, VT)
         csc_i = MadIPM._csc_with_nzval(aug_com, nzval_i, n)
-        opt.looped_linear_solver(
+        MadNLP.create_linear_solver(
+            opt.looped_linear_solver,
             csc_i;
             opt = MadNLP.default_options(opt.looped_linear_solver),
         )
@@ -35,12 +36,15 @@ function FailOnDemandLS(
     FailOnDemandLS{T,VT,eltype(solvers)}(solvers, bs, Set{Int}(), 0)
 end
 
-MadIPM.is_factorized(s::FailOnDemandLS) = all(MadIPM.is_factorized(sj) for sj in s.solvers)
+MadIPM.create_batch_linear_solver(::Type{FailOnDemandLS}, aug_com, nzvals_mat, n; opt) =
+    FailOnDemandLS(aug_com, nzvals_mat, n; opt = opt)
+
+MadNLP.is_factorized(s::FailOnDemandLS) = all(MadNLP.is_factorized(sj) for sj in s.solvers)
 
 function MadIPM.is_factorized!(buf::Vector{Int32}, s::FailOnDemandLS, v::MadIPM.BatchView)
     nf = 0
     @inbounds for j = 1:v.n
-        if !MadIPM.is_factorized(s.solvers[j])
+        if !MadNLP.is_factorized(s.solvers[j])
             nf += 1
             buf[nf] = j
         end

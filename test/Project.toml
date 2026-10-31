@@ -30,7 +30,9 @@ METIS_jll = "d00139f3-1899-568f-a2f0-47f597d42d70"
 MUMPS_seq_jll = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
 MadIPM = "4406d55e-1099-4ca6-ac6a-6cf051b10024"
 MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
-MadNLPGPU = "d72a61cc-809d-412f-99be-fd81f4b8a598"
+MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
+MadCoreGPU = "bc174d20-fbd0-43bd-9ba9-5b5faf23ea88"
+MadNLPCore = "38486723-7c71-48b9-ad12-dc22a86097e8"
 MadNLPTests = "b52a2a03-04ab-4a5f-9698-6a2deff93217"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
@@ -65,8 +67,13 @@ libblastrampoline_jll = "8e850b90-86db-534c-a0d3-1478176c7d93"
 nghttp2_jll = "8e850ede-7688-5339-a07c-302acd2aaf8d"
 p7zip_jll = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 
+[compat]
+MadNLP = "0.12"
+
 [sources]
 MadIPM = {path = ".."}
-
-[compat]
-MadNLP = "0.10.2"
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCore"}
+MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCoreGPU"}
+MadNLPCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLPCore"}
+MadNLP = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLP"}
+MadNLPTests = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLPTests"}

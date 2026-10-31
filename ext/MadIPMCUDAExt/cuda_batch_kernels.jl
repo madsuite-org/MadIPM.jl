@@ -84,7 +84,7 @@ function MadIPM.compact_active_columns_inplace!(
     return dst
 end
 
-function MadNLP._set_con_scale_sparse!(
+function MadCore._set_con_scale_sparse!(
     con_scale::CuMatrix{T},
     jac_I::CuVector{<:Integer},
     jac_buffer::CuMatrix{T},
@@ -509,8 +509,8 @@ function MadIPM._kktmul!(
     alpha,
     beta,
 ) where T
-    wvals = MadNLP.full(w)
-    xvals = MadNLP.full(x)
+    wvals = MadCore.full(w)
+    xvals = MadCore.full(x)
     bs = size(wvals, 2)
     threads = 256
     alpha_T = T(alpha)

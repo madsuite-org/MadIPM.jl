@@ -32,7 +32,7 @@ struct UniformBatchWorkspace{
     dual_cert_res::MT
     dual_cert_bound::MT
     dual_cert_margin::MT
-    status::Vector{MadNLP.Status}
+    status::Vector{MadCore.Status}
 
     _term_gpu::MI64
     _term_cpu::Matrix{Int64}
@@ -90,11 +90,11 @@ function UniformBatchWorkspace(
         MT(undef, 1, batch_size),  # dual_cert_res
         MT(undef, 1, batch_size),  # dual_cert_bound
         MT(undef, 1, batch_size),  # dual_cert_margin
-        fill(MadNLP.INITIAL, batch_size),  # status
+        fill(MadCore.INITIAL, batch_size),  # status
         similar(_proto, Int64, 1, batch_size),    # _term_gpu
         zeros(Int64, 1, batch_size),  # _term_cpu
-        fill!(similar(_proto, Int64, 1, 1), Int64(MadNLP.REGULAR)),  # _any_nonregular_gpu
-        fill(Int64(MadNLP.REGULAR), 1, 1),  # _any_nonregular_cpu
+        fill!(similar(_proto, Int64, 1, 1), Int64(MadCore.REGULAR)),  # _any_nonregular_gpu
+        fill(Int64(MadCore.REGULAR), 1, 1),  # _any_nonregular_cpu
         MT(undef, 1, batch_size),  # _norm_gpu_w
         MT(undef, 1, batch_size),  # _norm_gpu_p
         fill!(similar(_proto, Int32), zero(Int32)),  # _ls_error
@@ -141,7 +141,7 @@ mutable struct UniformBatchMPCSolver{
 
     opt::IPMOptions
     batch_cnt::BatchCounters
-    logger::MadNLP.MadNLPLogger
+    logger::MadCore.MadNLPLogger
     batch_views::BVS
     kkt::KKT
 
@@ -157,10 +157,10 @@ _get_ind_ub(bs::AbstractBatchMPCSolver) = bs.bcb.ind_ub
 active_batch_size(bs::AbstractBatchMPCSolver) =
     local_batch_size(active_view(bs.batch_views))
 
-function update_active_set!(state::BatchViewState, status::Vector{MadNLP.Status})
+function update_active_set!(state::BatchViewState, status::Vector{MadCore.Status})
     nselected = 0
     @inbounds for i in eachindex(status)
-        if status[i] == MadNLP.REGULAR
+        if status[i] == MadCore.REGULAR
             nselected += 1
             state.selected_local_buffer[nselected] = i
         end
@@ -195,8 +195,8 @@ function UniformBatchMPCSolver(
 
     nvar_nlp = bmeta.nvar
 
-    opt_batch_ls = MadNLP.default_options(uniformbatch_linear_solver)
-    remaining_kwargs = MadNLP.set_options!(opt_batch_ls, kwargs)
+    opt_batch_ls = MadCore.default_options(uniformbatch_linear_solver)
+    remaining_kwargs = MadCore.set_options!(opt_batch_ls, kwargs)
 
     options = load_options(bnlp; remaining_kwargs...)
     ipm_opt = options.interior_point
@@ -205,7 +205,7 @@ function UniformBatchMPCSolver(
     batch_cnt = BatchCounters(batch_size)
     batch_cnt.start_time[] = time()
 
-    bcb = MadNLP.create_callback(
+    bcb = MadCore.create_callback(
         UniformBatchCallback{T,VT,MT,VI},
         bnlp;
         fixed_variable_treatment = ipm_opt.fixed_variable_treatment,
@@ -225,7 +225,7 @@ function UniformBatchMPCSolver(
 
     batch_views = BatchViewState(bcb, batch_size)
 
-    batch_kkts = MadNLP.create_kkt_system(
+    batch_kkts = MadCore.create_kkt_system(
         ipm_opt.kkt_system,
         bcb,
         uniformbatch_linear_solver;
