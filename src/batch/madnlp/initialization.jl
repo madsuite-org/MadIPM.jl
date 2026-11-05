@@ -33,7 +33,6 @@ function MadNLP.initialize!(
     lcon = copy(MadNLP.get_lcon(bcb))
     ucon = copy(MadNLP.get_ucon(bcb))
 
-    MadNLP._treat_equality_initialize!(bcb.equality_handler, lcon, ucon, tol)
     MadNLP._treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadNLP.AbstractCallback. will need to be adjust for batchdensecallback
 
     MadNLP.set_initial_bounds!(lvar, uvar, tol)
@@ -45,7 +44,7 @@ function MadNLP.initialize!(
 
     MadNLP.slack(xl) .= view(lcon, ind_ineq, :)
     MadNLP.slack(xu) .= view(ucon, ind_ineq, :)
-    rhs .= (lcon .== ucon) .* lcon
+    MadNLP._treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
     copyto!(MadNLP.slack(x), view(bcb.con_buffer, ind_ineq, :))
 
     MadNLP.set_initial_bounds!(MadNLP.slack(xl), MadNLP.slack(xu), tol)
