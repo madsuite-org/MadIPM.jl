@@ -110,7 +110,7 @@ struct BatchVector{T,MT<:AbstractMatrix{T}}
     values::MT
 end
 
-MadNLP.full(bv::BatchVector) = bv.values
+MadCore.full(bv::BatchVector) = bv.values
 
 function BatchVector(
     ::Type{MT},
@@ -147,7 +147,7 @@ BatchCounters(batch_size::Int) = BatchCounters(
 )
 
 mutable struct BatchExecutionStats{T,VT<:AbstractVector{T},MT<:AbstractMatrix{T}}
-    status::Vector{MadNLP.Status}  # (bs,)
+    status::Vector{MadCore.Status}  # (bs,)
     solution::MT                   # (nvar_nlp, bs)
     objective::VT                  # (bs,)
     constraints::MT                # (ncon, bs)
@@ -170,7 +170,7 @@ function BatchExecutionStats(
     batch_cnt::BatchCounters = BatchCounters(batch_size),
 ) where {T,MT<:AbstractMatrix{T},VT<:AbstractVector{T}}
     return BatchExecutionStats{T,VT,MT}(
-        fill(MadNLP.INITIAL, batch_size),
+        fill(MadCore.INITIAL, batch_size),
         MT(undef, nvar_nlp, batch_size),
         VT(undef, batch_size),
         MT(undef, ncon, batch_size),

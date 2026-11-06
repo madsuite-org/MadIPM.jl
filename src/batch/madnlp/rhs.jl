@@ -52,12 +52,12 @@ function BatchUnreducedKKTVector(
     )
 end
 
-MadNLP.full(bv::BatchUnreducedKKTVector) = bv.values
-MadNLP.primal(bv::BatchUnreducedKKTVector) = bv._primal
-MadNLP.dual(bv::BatchUnreducedKKTVector) = bv._dual
-MadNLP.primal_dual(bv::BatchUnreducedKKTVector) = bv._primal_dual
-MadNLP.dual_lb(bv::BatchUnreducedKKTVector) = bv._dual_lb
-MadNLP.dual_ub(bv::BatchUnreducedKKTVector) = bv._dual_ub
+MadCore.full(bv::BatchUnreducedKKTVector) = bv.values
+MadCore.primal(bv::BatchUnreducedKKTVector) = bv._primal
+MadCore.dual(bv::BatchUnreducedKKTVector) = bv._dual
+MadCore.primal_dual(bv::BatchUnreducedKKTVector) = bv._primal_dual
+MadCore.dual_lb(bv::BatchUnreducedKKTVector) = bv._dual_lb
+MadCore.dual_ub(bv::BatchUnreducedKKTVector) = bv._dual_ub
 xp_lr(bv::BatchUnreducedKKTVector) = bv._xp_lr
 xp_ur(bv::BatchUnreducedKKTVector) = bv._xp_ur
 
@@ -103,9 +103,9 @@ function BatchPrimalVector(
     )
 end
 
-MadNLP.variable(bpv::BatchPrimalVector) = bpv._variable
-MadNLP.slack(bpv::BatchPrimalVector) = bpv._slack
+MadCore.variable(bpv::BatchPrimalVector) = bpv._variable
+MadCore.slack(bpv::BatchPrimalVector) = bpv._slack
 lower(bpv::BatchPrimalVector) = bpv._lower
 upper(bpv::BatchPrimalVector) = bpv._upper
-MadNLP.full(bpv::BatchPrimalVector) = bpv.values
-MadNLP.primal(bpv::BatchPrimalVector) = bpv.values
+MadCore.full(bpv::BatchPrimalVector) = bpv.values
+MadCore.primal(bpv::BatchPrimalVector) = bpv.values

@@ -1,14 +1,6 @@
 steps:
-  - label: "Julia v1.10"
-    plugins:
-      - JuliaCI/julia#v1:
-          version: "1.10"
-      - JuliaCI/julia-test#v1: ~
-    agents:
-      queue: "cuda"
-    if: build.message !~ /\[skip tests\]/
-    timeout_in_minutes: 60
-
+  # Julia 1.10 does not read [sources], which points to the unregistered MadNLP.jl
+  # packages; restore it once those packages are registered.
   - label: "Julia v1.11"
     plugins:
       - JuliaCI/julia#v1:

@@ -27,11 +27,11 @@ end
 
 function update_primal_infeasibility_certificate!(batch_solver::AbstractBatchMPCSolver{T}) where T
     ws = batch_solver.workspace
-    y = MadNLP.full(batch_solver.y)
-    rhs = MadNLP.full(batch_solver.rhs)
-    jacl = MadNLP.full(batch_solver.jacl)
-    zl = MadNLP.full(batch_solver.zl)
-    zu = MadNLP.full(batch_solver.zu)
+    y = MadCore.full(batch_solver.y)
+    rhs = MadCore.full(batch_solver.rhs)
+    jacl = MadCore.full(batch_solver.jacl)
+    zl = MadCore.full(batch_solver.zl)
+    zu = MadCore.full(batch_solver.zu)
     nlb, nub = batch_solver.d.nlb, batch_solver.d.nub
 
     cert_norm = ws.sum_lb
@@ -74,14 +74,14 @@ function update_dual_infeasibility_certificate!(batch_solver::AbstractBatchMPCSo
         return
     end
 
-    x = MadNLP.primal(batch_solver.x)
-    ray = MadNLP.primal(batch_solver._w1)
+    x = MadCore.primal(batch_solver.x)
+    ray = MadCore.primal(batch_solver._w1)
     batch_mapreduce!(abs, max, zero(T), ws.sum_lb, x)
     @. ws.sum_lb = max(one(T), ws.sum_lb)
     @. ray = x / ws.sum_lb
 
     batch_mapreduce!((c_i, rhs_i) -> abs(c_i + rhs_i), max, zero(T),
-                     ws.dual_cert_res, MadNLP.full(batch_solver.c), MadNLP.full(batch_solver.rhs))
+                     ws.dual_cert_res, MadCore.full(batch_solver.c), MadCore.full(batch_solver.rhs))
     @. ws.dual_cert_res /= ws.sum_lb
 
     nlb, nub = batch_solver.d.nlb, batch_solver.d.nub
@@ -96,8 +96,8 @@ function update_dual_infeasibility_certificate!(batch_solver::AbstractBatchMPCSo
         @. ws.dual_cert_bound = max(ws.dual_cert_bound, ws.sum_ub)
     end
 
-    batch_mapreduce!(*, +, zero(T), ws.dual_cert_margin, MadNLP.primal(batch_solver.f), ray)
-    batch_mapreduce!(abs, max, zero(T), ws.sum_ub, MadNLP.primal(batch_solver.f))
+    batch_mapreduce!(*, +, zero(T), ws.dual_cert_margin, MadCore.primal(batch_solver.f), ray)
+    batch_mapreduce!(abs, max, zero(T), ws.sum_ub, MadCore.primal(batch_solver.f))
     @. ws.sum_ub = max(one(T), ws.sum_ub)
     @. ws.dual_cert_margin = -ws.dual_cert_margin / ws.sum_ub
     return
@@ -105,9 +105,9 @@ end
 
 function set_initial_primal_rhs!(solver::AbstractBatchMPCSolver)
     p = solver.p
-    fill!(MadNLP.full(p), 0.0)
-    py = MadNLP.dual(p)
-    b = MadNLP.full(solver.c)
+    fill!(MadCore.full(p), 0.0)
+    py = MadCore.dual(p)
+    b = MadCore.full(solver.c)
 
     py .= .- b
     return
@@ -115,24 +115,24 @@ end
 
 function set_initial_dual_rhs!(solver::AbstractBatchMPCSolver)
     p = solver.p
-    fill!(MadNLP.full(p), 0.0)
-    px = MadNLP.primal(p)
-    c = MadNLP.primal(solver.f)
+    fill!(MadCore.full(p), 0.0)
+    px = MadCore.primal(p)
+    c = MadCore.primal(solver.f)
 
     px .= .- c
     return
 end
 
 function set_predictive_rhs!(solver::AbstractBatchMPCSolver, kkt::AbstractBatchKKTSystem)
-    px = MadNLP.primal(solver.p)
-    py = MadNLP.dual(solver.p)
-    pzl = MadNLP.dual_lb(solver.p)
-    pzu = MadNLP.dual_ub(solver.p)
-    f = MadNLP.primal(solver.f)
-    c = MadNLP.full(solver.c)
-    zl = MadNLP.full(solver.zl)
-    zu = MadNLP.full(solver.zu)
-    jacl = MadNLP.full(solver.jacl)
+    px = MadCore.primal(solver.p)
+    py = MadCore.dual(solver.p)
+    pzl = MadCore.dual_lb(solver.p)
+    pzu = MadCore.dual_ub(solver.p)
+    f = MadCore.primal(solver.f)
+    c = MadCore.full(solver.c)
+    zl = MadCore.full(solver.zl)
+    zu = MadCore.full(solver.zu)
+    jacl = MadCore.full(solver.jacl)
     xl_r = lower(solver.xl)
     x_lr = lower(solver.x)
     zl_r = lower(solver.zl)
@@ -140,7 +140,7 @@ function set_predictive_rhs!(solver::AbstractBatchMPCSolver, kkt::AbstractBatchK
     x_ur = upper(solver.x)
     zu_r = upper(solver.zu)
 
-    fill!(MadNLP.full(solver.p), 0.0)
+    fill!(MadCore.full(solver.p), 0.0)
 
     px .= .-f .+ zl .- zu .- jacl
     py .= .-c
@@ -158,15 +158,15 @@ function set_correction_rhs!(
     ind_lb,
     ind_ub,
 )
-    px = MadNLP.primal(bs.p)
-    py = MadNLP.dual(bs.p)
-    pzl = MadNLP.dual_lb(bs.p)
-    pzu = MadNLP.dual_ub(bs.p)
-    f = MadNLP.primal(bs.f)
-    c = MadNLP.full(bs.c)
-    zl = MadNLP.full(bs.zl)
-    zu = MadNLP.full(bs.zu)
-    jacl = MadNLP.full(bs.jacl)
+    px = MadCore.primal(bs.p)
+    py = MadCore.dual(bs.p)
+    pzl = MadCore.dual_lb(bs.p)
+    pzu = MadCore.dual_ub(bs.p)
+    f = MadCore.primal(bs.f)
+    c = MadCore.full(bs.c)
+    zl = MadCore.full(bs.zl)
+    zu = MadCore.full(bs.zu)
+    jacl = MadCore.full(bs.jacl)
     xl_r = lower(bs.xl)
     x_lr = lower(bs.x)
     zl_r = lower(bs.zl)
@@ -182,8 +182,8 @@ function set_correction_rhs!(
 end
 
 function get_correction!(batch_solver::AbstractBatchMPCSolver, correction_lb, correction_ub)
-    dlb = MadNLP.dual_lb(batch_solver.d)
-    dub = MadNLP.dual_ub(batch_solver.d)
+    dlb = MadCore.dual_lb(batch_solver.d)
+    dub = MadCore.dual_ub(batch_solver.d)
 
     dx_lr = xp_lr(batch_solver.d)
     dx_ur = xp_ur(batch_solver.d)
@@ -285,8 +285,8 @@ function get_affine_complementarity_measure!(
     zu_r = upper(solver.zu)
     dx_lr = xp_lr(solver.d)
     dx_ur = xp_ur(solver.d)
-    dzlb = MadNLP.dual_lb(solver.d)
-    dzub = MadNLP.dual_ub(solver.d)
+    dzlb = MadCore.dual_lb(solver.d)
+    dzub = MadCore.dual_ub(solver.d)
 
     _affine_compl_lb!(ws.sum_lb, x_lr, xl_r, zl_r, dx_lr, dzlb, alpha_p, alpha_d)
     _affine_compl_ub!(ws.sum_ub, xu_r, x_ur, zu_r, dx_ur, dzub, alpha_p, alpha_d)
@@ -320,7 +320,7 @@ function get_fraction_to_boundary_step!(batch_solver::AbstractBatchMPCSolver)
 
     if nlb > 0
         _ftb_primal_lb!(ws.alpha_xl, xp_lr(d), lower(x), lower(xl), ws.tau)
-        _ftb_dual_lb!(ws.alpha_zl, MadNLP.dual_lb(d), lower(zl), ws.tau)
+        _ftb_dual_lb!(ws.alpha_zl, MadCore.dual_lb(d), lower(zl), ws.tau)
     else
         fill!(ws.alpha_xl, one(T))
         fill!(ws.alpha_zl, one(T))
@@ -328,7 +328,7 @@ function get_fraction_to_boundary_step!(batch_solver::AbstractBatchMPCSolver)
 
     if nub > 0
         _ftb_primal_ub!(ws.alpha_xu, xp_ur(d), upper(x), upper(xu), ws.tau)
-        _ftb_dual_ub!(ws.alpha_zu, MadNLP.dual_ub(d), upper(zu), ws.tau)
+        _ftb_dual_ub!(ws.alpha_zu, MadCore.dual_ub(d), upper(zu), ws.tau)
     else
         fill!(ws.alpha_xu, one(T))
         fill!(ws.alpha_zu, one(T))
@@ -617,13 +617,13 @@ function update_step!(rule::MehrotraAdaptiveStep, batch_solver::AbstractBatchMPC
         lower(x),
         lower(xl),
         nlb,
-        MadNLP.dual_lb(d),
+        MadCore.dual_lb(d),
         lower(zl),
         xp_ur(d),
         upper(x),
         upper(xu),
         nub,
-        MadNLP.dual_ub(d),
+        MadCore.dual_ub(d),
         upper(zu),
         d.values,
         d.ind_lb,

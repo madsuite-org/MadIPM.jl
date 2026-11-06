@@ -1,40 +1,40 @@
-function set_initial_primal_rhs!(solver::MadNLP.AbstractMadNLPSolver)
+function set_initial_primal_rhs!(solver::MadCore.AbstractMadNLPSolver)
     p = solver.p
     fill!(full(p), 0.0)
-    py = MadNLP.dual(p)
+    py = MadCore.dual(p)
     b = solver.c
 
     py .= .- b
     return
 end
 
-function set_initial_dual_rhs!(solver::MadNLP.AbstractMadNLPSolver)
+function set_initial_dual_rhs!(solver::MadCore.AbstractMadNLPSolver)
     p = solver.p
     fill!(full(p), 0.0)
-    px = MadNLP.primal(p)
-    c = MadNLP.primal(solver.f)
+    px = MadCore.primal(p)
+    c = MadCore.primal(solver.f)
 
     px .= .- c
     return
 end
 
 function set_predictive_rhs!(
-    solver::MadNLP.AbstractMadNLPSolver,
-    kkt::MadNLP.AbstractKKTSystem,
+    solver::MadCore.AbstractMadNLPSolver,
+    kkt::MadCore.AbstractKKTSystem,
 )
     # RHS
-    px = MadNLP.primal(solver.p)
-    py = MadNLP.dual(solver.p)
-    pzl = MadNLP.dual_lb(solver.p)
-    pzu = MadNLP.dual_ub(solver.p)
-    zl = MadNLP.full(solver.zl)
-    zu = MadNLP.full(solver.zu)
+    px = MadCore.primal(solver.p)
+    py = MadCore.dual(solver.p)
+    pzl = MadCore.dual_lb(solver.p)
+    pzu = MadCore.dual_ub(solver.p)
+    zl = MadCore.full(solver.zl)
+    zu = MadCore.full(solver.zu)
     # Gradient
-    f = MadNLP.primal(solver.f)
+    f = MadCore.primal(solver.f)
     # Constraint
     c = solver.c
 
-    fill!(MadNLP.full(solver.p), 0.0)
+    fill!(MadCore.full(solver.p), 0.0)
 
     px .= .-f .+ zl .- zu .- solver.jacl
     py .= .-c
@@ -44,22 +44,22 @@ function set_predictive_rhs!(
 end
 
 function set_correction_rhs!(
-    solver::MadNLP.AbstractMadNLPSolver,
-    kkt::MadNLP.AbstractKKTSystem,
+    solver::MadCore.AbstractMadNLPSolver,
+    kkt::MadCore.AbstractKKTSystem,
     mu::Float64,
     correction_lb::AbstractVector{Float64},
     correction_ub::AbstractVector{Float64},
     ind_lb,
     ind_ub,
 )
-    px = MadNLP.primal(solver.p)
-    py = MadNLP.dual(solver.p)
-    pzl = MadNLP.dual_lb(solver.p)
-    pzu = MadNLP.dual_ub(solver.p)
+    px = MadCore.primal(solver.p)
+    py = MadCore.dual(solver.p)
+    pzl = MadCore.dual_lb(solver.p)
+    pzu = MadCore.dual_ub(solver.p)
 
-    f = MadNLP.primal(solver.f)
-    zl = MadNLP.full(solver.zl)
-    zu = MadNLP.full(solver.zu)
+    f = MadCore.primal(solver.f)
+    zl = MadCore.full(solver.zl)
+    zu = MadCore.full(solver.zu)
 
     px .= .- f .+ zl .- zu .- solver.jacl
     py .= .- solver.c
@@ -68,9 +68,9 @@ function set_correction_rhs!(
     return
 end
 
-function get_correction!(solver::MadNLP.AbstractMadNLPSolver, correction_lb, correction_ub)
-    dlb = MadNLP.dual_lb(solver.d)
-    dub = MadNLP.dual_ub(solver.d)
+function get_correction!(solver::MadCore.AbstractMadNLPSolver, correction_lb, correction_ub)
+    dlb = MadCore.dual_lb(solver.d)
+    dub = MadCore.dual_ub(solver.d)
 
     correction_lb .= solver.dx_lr .* dlb
     correction_ub .= solver.dx_ur .* dub
@@ -79,7 +79,7 @@ end
 
 # Gondzio's multi-correction scheme
 function set_extra_correction!(
-    solver::MadNLP.AbstractMadNLPSolver,
+    solver::MadCore.AbstractMadNLPSolver,
     correction_lb,
     correction_ub,
     alpha_p,
@@ -88,8 +88,8 @@ function set_extra_correction!(
     βmax,
     μ,
 )
-    dlb = MadNLP.dual_lb(solver.d)
-    dub = MadNLP.dual_ub(solver.d)
+    dlb = MadCore.dual_lb(solver.d)
+    dub = MadCore.dual_ub(solver.d)
     tmin, tmax = βmin * μ, βmax * μ
 
     # Lower-bound correction
@@ -145,8 +145,8 @@ end
 
 # Default implementation
 function set_aug_diagonal_reg!(
-    kkt::MadNLP.AbstractKKTSystem{T},
-    solver::MadNLP.AbstractMadNLPSolver{T},
+    kkt::MadCore.AbstractKKTSystem{T},
+    solver::MadCore.AbstractMadNLPSolver{T},
 ) where {T}
     fill!(kkt.reg, solver.del_w)
     fill!(kkt.du_diag, solver.del_c)
@@ -163,8 +163,8 @@ end
 
 # Special function for ScaledSparseKKTSystem to ensure coefficients are positive
 function set_aug_diagonal_reg!(
-    kkt::MadNLP.ScaledSparseKKTSystem{T},
-    solver::MadNLP.AbstractMadNLPSolver{T},
+    kkt::MadCore.ScaledSparseKKTSystem{T},
+    solver::MadCore.AbstractMadNLPSolver{T},
 ) where {T}
     fill!(kkt.reg, solver.del_w)
     fill!(kkt.du_diag, solver.del_c)
@@ -173,13 +173,13 @@ function set_aug_diagonal_reg!(
     copyto!(kkt.l_lower, solver.zl_r)
     copyto!(kkt.u_lower, solver.zu_r)
 
-    MadNLP._set_aug_diagonal!(kkt)
+    MadCore._set_aug_diagonal!(kkt)
     return
 end
 
 function set_aug_diagonal_reg!(
-    kkt::MadNLP.SparseUnreducedKKTSystem{T},
-    solver::MadNLP.AbstractMadNLPSolver{T},
+    kkt::MadCore.SparseUnreducedKKTSystem{T},
+    solver::MadCore.AbstractMadNLPSolver{T},
 ) where {T}
     x = full(solver.x)
     xl = full(solver.xl)
@@ -205,7 +205,7 @@ end
     Barrier
 =#
 
-function get_complementarity_measure(solver::MadNLP.AbstractMadNLPSolver)
+function get_complementarity_measure(solver::MadCore.AbstractMadNLPSolver)
     m1, m2 = length(solver.x_lr), length(solver.x_ur)
     if m1 + m2 == 0
         return 0.0
@@ -231,7 +231,7 @@ function get_complementarity_measure(solver::MadNLP.AbstractMadNLPSolver)
 end
 
 function get_affine_complementarity_measure(
-    solver::MadNLP.AbstractMadNLPSolver,
+    solver::MadCore.AbstractMadNLPSolver,
     alpha_p,
     alpha_d,
 )
@@ -239,8 +239,8 @@ function get_affine_complementarity_measure(
     if m1 + m2 == 0
         return 0.0
     else
-        dzlb = MadNLP.dual_lb(solver.d)
-        dzub = MadNLP.dual_ub(solver.d)
+        dzlb = MadCore.dual_lb(solver.d)
+        dzub = MadCore.dual_ub(solver.d)
 
         # for i = 1, ..., m1
         # x_lb = solver.xl_r[i]
@@ -365,8 +365,8 @@ function get_fraction_to_boundary_step(solver, tau)
     alpha_zl, alpha_zu, _ = get_alpha_max_dual(
         solver.zl_r,
         solver.zu_r,
-        MadNLP.dual_lb(solver.d),
-        MadNLP.dual_ub(solver.d),
+        MadCore.dual_lb(solver.d),
+        MadCore.dual_ub(solver.d),
         tau,
     )
     return min(alpha_xl, alpha_xu), min(alpha_zl, alpha_zu)
@@ -393,8 +393,8 @@ function update_step!(rule::MehrotraAdaptiveStep, solver)
     gamma_a = 1.0 / (1.0 - rule.gamma_f)
     tau = 1.0
 
-    d_zl = MadNLP.dual_lb(solver.d)
-    d_zu = MadNLP.dual_ub(solver.d)
+    d_zl = MadCore.dual_lb(solver.d)
+    d_zu = MadCore.dual_ub(solver.d)
 
     alpha_xl, alpha_xu, i_xl, i_xu = get_alpha_max_primal(
         solver.x_lr,
@@ -520,10 +520,10 @@ function has_primal_infeasibility_certificate(solver::MPCSolver{T}) where {T}
         norm(solver.xl_r, Inf),
         norm(solver.xu_r, Inf),
     )
-    residual = MadNLP.primal(solver._w2)
+    residual = MadCore.primal(solver._w2)
     copyto!(residual, solver.jacl)
-    residual .-= MadNLP.full(solver.zl)
-    residual .+= MadNLP.full(solver.zu)
+    residual .-= MadCore.full(solver.zl)
+    residual .+= MadCore.full(solver.zu)
     cert_res = norm(residual, Inf) / cert_norm
     cert_margin = dual_objective(solver) / (cert_norm * data_norm)
     tol = solver.opt.primal_infeasibility_cert_tol
@@ -538,10 +538,10 @@ function has_dual_infeasibility_certificate(solver::MPCSolver{T}) where {T}
     # So we only detect dual infeasibility for LPs. For QPs, we rely on the
     # diverging iterates check.
 
-    x = MadNLP.primal(solver.x)
+    x = MadCore.primal(solver.x)
     ray_norm = max(one(T), norm(x, Inf))
 
-    lhs = MadNLP.dual(solver._w2)
+    lhs = MadCore.dual(solver._w2)
     copyto!(lhs, solver.c)
     lhs .+= solver.rhs
     cert_res = norm(lhs, Inf) / ray_norm
@@ -550,8 +550,8 @@ function has_dual_infeasibility_certificate(solver::MPCSolver{T}) where {T}
     upper_violation = isempty(solver.x_ur) ? zero(T) : max(zero(T), maximum(solver.x_ur) / ray_norm)
     bound_violation = max(lower_violation, upper_violation)
 
-    obj_ray = dot(MadNLP.primal(solver.f), x) / ray_norm
-    obj_norm = max(one(T), norm(MadNLP.primal(solver.f), Inf))
+    obj_ray = dot(MadCore.primal(solver.f), x) / ray_norm
+    obj_norm = max(one(T), norm(MadCore.primal(solver.f), Inf))
     cert_margin = -obj_ray / obj_norm
     tol = solver.opt.dual_infeasibility_cert_tol
     return isfinite(cert_res) && isfinite(bound_violation) && isfinite(cert_margin) &&
@@ -559,7 +559,7 @@ function has_dual_infeasibility_certificate(solver::MPCSolver{T}) where {T}
 end
 
 function get_optimality_gap(solver::MPCSolver)
-    return MadNLP.get_inf_compl(
+    return MadCore.get_inf_compl(
         solver.x_lr,
         solver.xl_r,
         solver.zl_r,

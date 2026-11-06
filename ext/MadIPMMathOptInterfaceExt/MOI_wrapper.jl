@@ -8,7 +8,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     array_type::Type{<:AbstractVector{Float64}}
     stats::Union{
         Nothing,
-        MadNLP.MadNLPExecutionStats{Float64, <:AbstractVector{Float64}},
+        MadCore.MadNLPExecutionStats{Float64, <:AbstractVector{Float64}},
     }
     function Optimizer()
         return new(Dict{String, Any}(), false, false, nothing, nothing, Vector{Float64}, nothing)
@@ -114,9 +114,9 @@ function MOI.optimize!(model::Optimizer)
         Symbol(key) => model.options[key] for key in keys(model.options) if key != "solver"
     )
     if model.silent
-        options[:print_level] = MadNLP.ERROR
+        options[:print_level] = MadCore.ERROR
     else
-        options[:print_level] = MadNLP.INFO
+        options[:print_level] = MadCore.INFO
     end
     model.solver = MadIPM.MPCSolver(model.qp; options...)
     model.stats = MadIPM.solve!(model.solver)
@@ -141,26 +141,26 @@ function MOI.get(optimizer::Optimizer, attr::RawStatus)
     return getfield(optimizer.stats, attr.name)
 end
 
-const TERMINATION_STATUS = Dict{MadNLP.Status,MOI.TerminationStatusCode}(
-    MadNLP.SOLVE_SUCCEEDED => MOI.OPTIMAL,
-    MadNLP.SOLVED_TO_ACCEPTABLE_LEVEL => MOI.ALMOST_OPTIMAL,
-    MadNLP.SEARCH_DIRECTION_BECOMES_TOO_SMALL => MOI.SLOW_PROGRESS,
-    MadNLP.DIVERGING_ITERATES => MOI.INFEASIBLE_OR_UNBOUNDED,
-    MadNLP.INFEASIBLE_PROBLEM_DETECTED => MOI.INFEASIBLE,
-    MadNLP.MAXIMUM_ITERATIONS_EXCEEDED => MOI.ITERATION_LIMIT,
-    MadNLP.MAXIMUM_WALLTIME_EXCEEDED => MOI.TIME_LIMIT,
-    MadNLP.INITIAL => MOI.OPTIMIZE_NOT_CALLED,
-    MadNLP.RESTORATION_FAILED => MOI.NUMERICAL_ERROR,
-    MadNLP.INVALID_NUMBER_DETECTED => MOI.INVALID_MODEL,
-    MadNLP.ERROR_IN_STEP_COMPUTATION => MOI.NUMERICAL_ERROR,
-    MadNLP.NOT_ENOUGH_DEGREES_OF_FREEDOM => MOI.INVALID_MODEL,
-    MadNLP.USER_REQUESTED_STOP => MOI.INTERRUPTED,
-    MadNLP.INTERNAL_ERROR => MOI.OTHER_ERROR,
-    MadNLP.INVALID_NUMBER_OBJECTIVE => MOI.INVALID_MODEL,
-    MadNLP.INVALID_NUMBER_GRADIENT => MOI.INVALID_MODEL,
-    MadNLP.INVALID_NUMBER_CONSTRAINTS => MOI.INVALID_MODEL,
-    MadNLP.INVALID_NUMBER_JACOBIAN => MOI.INVALID_MODEL,
-    MadNLP.INVALID_NUMBER_HESSIAN_LAGRANGIAN => MOI.INVALID_MODEL,
+const TERMINATION_STATUS = Dict{MadCore.Status,MOI.TerminationStatusCode}(
+    MadCore.SOLVE_SUCCEEDED => MOI.OPTIMAL,
+    MadCore.SOLVED_TO_ACCEPTABLE_LEVEL => MOI.ALMOST_OPTIMAL,
+    MadCore.SEARCH_DIRECTION_BECOMES_TOO_SMALL => MOI.SLOW_PROGRESS,
+    MadCore.DIVERGING_ITERATES => MOI.INFEASIBLE_OR_UNBOUNDED,
+    MadCore.INFEASIBLE_PROBLEM_DETECTED => MOI.INFEASIBLE,
+    MadCore.MAXIMUM_ITERATIONS_EXCEEDED => MOI.ITERATION_LIMIT,
+    MadCore.MAXIMUM_WALLTIME_EXCEEDED => MOI.TIME_LIMIT,
+    MadCore.INITIAL => MOI.OPTIMIZE_NOT_CALLED,
+    MadCore.RESTORATION_FAILED => MOI.NUMERICAL_ERROR,
+    MadCore.INVALID_NUMBER_DETECTED => MOI.INVALID_MODEL,
+    MadCore.ERROR_IN_STEP_COMPUTATION => MOI.NUMERICAL_ERROR,
+    MadCore.NOT_ENOUGH_DEGREES_OF_FREEDOM => MOI.INVALID_MODEL,
+    MadCore.USER_REQUESTED_STOP => MOI.INTERRUPTED,
+    MadCore.INTERNAL_ERROR => MOI.OTHER_ERROR,
+    MadCore.INVALID_NUMBER_OBJECTIVE => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_GRADIENT => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_CONSTRAINTS => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_JACOBIAN => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_HESSIAN_LAGRANGIAN => MOI.INVALID_MODEL,
 )
 
 function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
@@ -234,7 +234,9 @@ function MOI.get(
     else
         model.stats.multipliers_L[col] - model.stats.multipliers_U[col]
     end
-    return dual
+    # The bound multipliers of a maximization problem have the sign of the
+    # constraint multipliers, which is opposite to the MOI convention.
+    return _dual_multiplier(model) * dual
 end
 
 _dual_multiplier(model::Optimizer) = model.qp.meta.minimize ? 1.0 : -1.0

@@ -3,8 +3,9 @@ module MadIPM
 using Printf
 using LinearAlgebra
 import SparseArrays
-import MadNLP
-import MadNLP: full, LDLFactorizations
+import MadCore
+import MadCore: full
+import LDLFactorizations
 import NLPModels
 import SparseMatricesCOO: SparseMatrixCOO
 
@@ -56,6 +57,6 @@ include("batch/madipm/solver.jl")
 
 export MPCSolver, madipm, madipm_batch
 
-MadNLP.madsuite(::Val{:madipm}, args...; kwargs...) = madipm(args...; kwargs...)
+MadCore.madsuite(::Val{:madipm}, args...; kwargs...) = madipm(args...; kwargs...)
 
 end # module MadIPM

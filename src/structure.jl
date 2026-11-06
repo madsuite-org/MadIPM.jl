@@ -2,43 +2,43 @@ mutable struct MPCSolver{
     T,
     VT<:AbstractVector{T},
     VI<:AbstractVector{Int},
-    KKTSystem<:MadNLP.AbstractKKTSystem{T},
+    KKTSystem<:MadCore.AbstractKKTSystem{T},
     Model<:NLPModels.AbstractNLPModel{T,VT},
-    CB<:MadNLP.AbstractCallback{T},
-} <: MadNLP.AbstractMadNLPSolver{T}
+    CB<:MadCore.AbstractCallback{T},
+} <: MadCore.AbstractMadNLPSolver{T}
     nlp::Model
     class::AbstractConicProblem
     cb::CB
     kkt::KKTSystem
 
     opt::IPMOptions
-    cnt::MadNLP.MadNLPCounters
-    logger::MadNLP.MadNLPLogger
+    cnt::MadCore.MadNLPCounters
+    logger::MadCore.MadNLPLogger
 
     n::Int # number of variables (after reformulation)
     m::Int # number of cons
     nlb::Int
     nub::Int
 
-    x::MadNLP.PrimalVector{T,VT,VI} # primal (after reformulation)
+    x::MadCore.PrimalVector{T,VT,VI} # primal (after reformulation)
     y::VT # dual
-    zl::MadNLP.PrimalVector{T,VT,VI} # dual (after reformulation)
-    zu::MadNLP.PrimalVector{T,VT,VI} # dual (after reformulation)
-    xl::MadNLP.PrimalVector{T,VT,VI} # primal lower bound (after reformulation)
-    xu::MadNLP.PrimalVector{T,VT,VI} # primal upper bound (after reformulation)
+    zl::MadCore.PrimalVector{T,VT,VI} # dual (after reformulation)
+    zu::MadCore.PrimalVector{T,VT,VI} # dual (after reformulation)
+    xl::MadCore.PrimalVector{T,VT,VI} # primal lower bound (after reformulation)
+    xu::MadCore.PrimalVector{T,VT,VI} # primal upper bound (after reformulation)
 
     obj_val::T
-    f::MadNLP.PrimalVector{T,VT,VI}
+    f::MadCore.PrimalVector{T,VT,VI}
     c::VT
 
     jacl::VT
 
-    d::MadNLP.UnreducedKKTVector{T,VT}
-    p::MadNLP.UnreducedKKTVector{T,VT}
+    d::MadCore.UnreducedKKTVector{T,VT}
+    p::MadCore.UnreducedKKTVector{T,VT}
 
     # Buffers
-    _w1::MadNLP.UnreducedKKTVector{T,VT}
-    _w2::MadNLP.UnreducedKKTVector{T,VT}
+    _w1::MadCore.UnreducedKKTVector{T,VT}
+    _w2::MadCore.UnreducedKKTVector{T,VT}
 
     correction_lb::VT
     correction_ub::VT
@@ -50,14 +50,14 @@ mutable struct MPCSolver{
     ind_llb::VI
     ind_uub::VI
 
-    x_lr::MadNLP.SubVector{T,VT,VI}
-    x_ur::MadNLP.SubVector{T,VT,VI}
-    xl_r::MadNLP.SubVector{T,VT,VI}
-    xu_r::MadNLP.SubVector{T,VT,VI}
-    zl_r::MadNLP.SubVector{T,VT,VI}
-    zu_r::MadNLP.SubVector{T,VT,VI}
-    dx_lr::MadNLP.SubVector{T,VT,VI}
-    dx_ur::MadNLP.SubVector{T,VT,VI}
+    x_lr::MadCore.SubVector{T,VT,VI}
+    x_ur::MadCore.SubVector{T,VT,VI}
+    xl_r::MadCore.SubVector{T,VT,VI}
+    xu_r::MadCore.SubVector{T,VT,VI}
+    zl_r::MadCore.SubVector{T,VT,VI}
+    zu_r::MadCore.SubVector{T,VT,VI}
+    dx_lr::MadCore.SubVector{T,VT,VI}
+    dx_ur::MadCore.SubVector{T,VT,VI}
 
     inf_pr::T
     inf_du::T
@@ -73,15 +73,15 @@ mutable struct MPCSolver{
     del_c::T
     best_complementarity::T
     mu_curr::T
-    status::MadNLP.Status
+    status::MadCore.Status
 end
 
 for (k, attribute) in enumerate(fieldnames(MPCSolver))
     fname = "get_$(attribute)"
     sf = Symbol(fname)
-    if isdefined(MadNLP, sf)
+    if isdefined(MadCore, sf)
         @eval begin
-            @inline function MadNLP.$(sf)(solver::MPCSolver)
+            @inline function MadCore.$(sf)(solver::MPCSolver)
                 return getfield(solver, $k)
             end
         end
@@ -99,48 +99,48 @@ function MPCSolver(nlp::NLPModels.AbstractNLPModel{T,VT}; kwargs...) where {T,VT
 
     ipm_opt = options.interior_point
     logger = options.logger
-    @assert MadNLP.is_supported(ipm_opt.linear_solver, T)
+    @assert MadCore.is_supported(ipm_opt.linear_solver, T)
 
-    cnt = MadNLP.MadNLPCounters(start_time = time())
-    cb = MadNLP.create_callback(
-        MadNLP.SparseCallback,
+    cnt = MadCore.MadNLPCounters(start_time = time())
+    cb = MadCore.create_callback(
+        MadCore.SparseCallback,
         nlp;
         fixed_variable_treatment = ipm_opt.fixed_variable_treatment,
         equality_treatment = ipm_opt.equality_treatment,
     )
 
     # generic options
-    MadNLP.@trace(logger, "Initializing variables.")
+    MadCore.@trace(logger, "Initializing variables.")
 
     ind_lb = cb.ind_lb
     ind_ub = cb.ind_ub
 
     ns = length(cb.ind_ineq)
-    nx = MadNLP.n_variables(cb)
+    nx = MadCore.n_variables(cb)
     n = nx+ns
     m = NLPModels.get_ncon(nlp)
     nlb = length(ind_lb)
     nub = length(ind_ub)
 
-    MadNLP.@trace(logger, "Initializing KKT system.")
-    kkt = MadNLP.create_kkt_system(
+    MadCore.@trace(logger, "Initializing KKT system.")
+    kkt = MadCore.create_kkt_system(
         ipm_opt.kkt_system,
         cb,
         ipm_opt.linear_solver;
         opt_linear_solver = options.linear_solver,
     )
 
-    x = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
-    xl = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
-    xu = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
-    zl = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
-    zu = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
-    f = MadNLP.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    x = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    xl = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    xu = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    zl = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    zu = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
+    f = MadCore.PrimalVector(VT, nx, ns, ind_lb, ind_ub)
 
-    d = MadNLP.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
-    p = MadNLP.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
-    _w1 = MadNLP.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
-    _w2 = MadNLP.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
+    d = MadCore.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
+    p = MadCore.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
+    _w1 = MadCore.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
+    _w2 = MadCore.UnreducedKKTVector(VT, n, m, nlb, nub, ind_lb, ind_ub)
 
     # Buffers
     correction_lb = VT(undef, nlb)
@@ -162,7 +162,7 @@ function MPCSolver(nlp::NLPModels.AbstractNLPModel{T,VT}; kwargs...) where {T,VT
 
     cnt.init_time = time() - cnt.start_time
 
-    nnzh = MadNLP.get_nnzh(nlp)
+    nnzh = MadCore.get_nnzh(nlp)
     # check if the problem is a LP or a QP
     class = iszero(nnzh) ? LinearProgram() : QuadraticProgram()
 
@@ -221,13 +221,13 @@ function MPCSolver(nlp::NLPModels.AbstractNLPModel{T,VT}; kwargs...) where {T,VT
         zero(T),
         typemax(T),
         zero(T),
-        MadNLP.INITIAL,
+        MadCore.INITIAL,
     )
 end
 
-function MadNLP.print_iter(solver::MPCSolver; options...)
+function MadCore.print_iter(solver::MPCSolver; options...)
     obj_scale = solver.cb.obj_scale[]
-    mod(solver.cnt.k, 10)==0 && MadNLP.@info(
+    mod(solver.cnt.k, 10)==0 && MadCore.@info(
         solver.logger,
         @sprintf(
             "iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr"
@@ -236,7 +236,7 @@ function MadNLP.print_iter(solver::MPCSolver; options...)
     inf_du = solver.inf_du
     inf_pr = solver.inf_pr
     mu = log10(solver.mu)
-    MadNLP.@info(
+    MadCore.@info(
         solver.logger,
         Printf.@sprintf(
             "%4i%s% 10.7e %6.2e %6.2e %5.1f %6.2e %s %6.2e %6.2e",
@@ -246,7 +246,7 @@ function MadNLP.print_iter(solver::MPCSolver; options...)
             inf_pr,
             inf_du,
             mu,
-            solver.cnt.k == 0 ? 0.0 : norm(MadNLP.primal(solver.d), Inf),
+            solver.cnt.k == 0 ? 0.0 : norm(MadCore.primal(solver.d), Inf),
             solver.del_w == 0 ? "   - " : @sprintf("%5.1f", log(10, solver.del_w)),
             solver.alpha_d,
             solver.alpha_p

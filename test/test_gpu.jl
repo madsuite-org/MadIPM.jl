@@ -1,7 +1,7 @@
 using Adapt
 using KernelAbstractions
 using CUDSS
-using MadNLPGPU
+using MadCoreGPU
 
 @testset "MadIPMCUDA" begin
     qp = simple_lp()
@@ -16,7 +16,7 @@ using MadNLPGPU
         solver = MadIPM.MPCSolver(
             qp_gpu;
             kkt_system = kkt,
-            linear_solver = MadNLPGPU.CUDSSSolver,
+            linear_solver = MadCoreGPU.CUDSSSolver,
             cudss_algorithm = algo,
             print_level = MadNLP.ERROR,
         )

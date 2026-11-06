@@ -4,9 +4,9 @@ struct UniformBatchCallback{
     MT<:AbstractMatrix{T},
     VI<:AbstractVector{Int},
     BM<:NLPModels.AbstractBatchNLPModel,
-    FH<:MadNLP.AbstractFixedVariableTreatment,
-    EH<:MadNLP.AbstractEqualityTreatment,
-} <: MadNLP.AbstractCallback{T,VT,FH}
+    FH<:MadCore.AbstractFixedVariableTreatment,
+    EH<:MadCore.AbstractEqualityTreatment,
+} <: MadCore.AbstractCallback{T,VT,FH}
     nlp::BM
     batch_size::Int
 
@@ -45,8 +45,8 @@ struct UniformBatchCallback{
     ind_uub::VI
 end
 
-function MadNLP.create_sparse_fixed_handler(
-    ::Type{MadNLP.MakeParameter},
+function MadCore.create_sparse_fixed_handler(
+    ::Type{MadCore.MakeParameter},
     bnlp::NLPModels.AbstractBatchNLPModel{T},
     jac_I,
     jac_J,
@@ -71,7 +71,7 @@ function MadNLP.create_sparse_fixed_handler(
     nfixed = length(fixed)
 
     if nfixed == 0
-        return MadNLP.NoFixedVariables(), n, nnzj, nnzh
+        return MadCore.NoFixedVariables(), n, nnzj, nnzh
     end
 
     free = findall(isfree)
@@ -101,7 +101,7 @@ function MadNLP.create_sparse_fixed_handler(
     copyto!(jac_I, Ji)
     copyto!(jac_J, Jj)
 
-    fixed_handler = MadNLP.MakeParameter(
+    fixed_handler = MadCore.MakeParameter(
         free,
         fixed,
         ind_jac_free,
@@ -114,11 +114,11 @@ function MadNLP.create_sparse_fixed_handler(
     return fixed_handler, nx, nnzj, nnzh
 end
 
-function MadNLP.create_callback(
+function MadCore.create_callback(
     ::Type{UniformBatchCallback{T,VT,MT,VI}},
     bnlp::NLPModels.AbstractBatchNLPModel{T};
-    fixed_variable_treatment = MadNLP.MakeParameter,
-    equality_treatment = MadNLP.EnforceEquality,
+    fixed_variable_treatment = MadCore.MakeParameter,
+    equality_treatment = MadCore.EnforceEquality,
     check_batch_structure::Bool = true,
 ) where {T,VT,MT,VI}
     bmeta = bnlp.meta
@@ -166,7 +166,7 @@ function MadNLP.create_callback(
     lcon = view(bmeta.lcon, :, 1)
     ucon = view(bmeta.ucon, :, 1)
 
-    fixed_handler, nvar, nnzj, nnzh = MadNLP.create_sparse_fixed_handler(
+    fixed_handler, nvar, nnzj, nnzh = MadCore.create_sparse_fixed_handler(
         fixed_variable_treatment,
         bnlp,
         jac_I,
@@ -184,14 +184,14 @@ function MadNLP.create_callback(
 
     # Get fixed variables
     ind_fixed = findall(lvar .== uvar)
-    if length(ind_fixed) > 0 && fixed_variable_treatment == MadNLP.MakeParameter
+    if length(ind_fixed) > 0 && fixed_variable_treatment == MadCore.MakeParameter
         ind_free = findall(lvar .< uvar)
         # Remove fixed variables from problem's formulation
         lvar = lvar[ind_free]
         uvar = uvar[ind_free]
     end
 
-    indexes = MadNLP._parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
+    indexes = MadCore._parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
 
     return UniformBatchCallback{
         T,
@@ -234,7 +234,7 @@ end
 
 
 
-function MadNLP._jac_sparsity_wrapper!(
+function MadCore._jac_sparsity_wrapper!(
     bcb::UniformBatchCallback,
     I::AbstractVector,
     J::AbstractVector,
@@ -244,7 +244,7 @@ function MadNLP._jac_sparsity_wrapper!(
     return
 end
 
-function MadNLP._hess_sparsity_wrapper!(
+function MadCore._hess_sparsity_wrapper!(
     bcb::UniformBatchCallback,
     I::AbstractVector,
     J::AbstractVector,
@@ -254,12 +254,12 @@ function MadNLP._hess_sparsity_wrapper!(
     return
 end
 
-function MadNLP.build_hessian_structure(
+function MadCore.build_hessian_structure(
     bcb::UniformBatchCallback,
-    ::Type{<:MadNLP.ExactHessian},
+    ::Type{<:MadCore.ExactHessian},
 )
-    hess_I = MadNLP.create_array(bcb, Int32, bcb.nnzh)
-    hess_J = MadNLP.create_array(bcb, Int32, bcb.nnzh)
-    MadNLP._hess_sparsity_wrapper!(bcb, hess_I, hess_J)
+    hess_I = MadCore.create_array(bcb, Int32, bcb.nnzh)
+    hess_J = MadCore.create_array(bcb, Int32, bcb.nnzh)
+    MadCore._hess_sparsity_wrapper!(bcb, hess_I, hess_J)
     return hess_I, hess_J
 end

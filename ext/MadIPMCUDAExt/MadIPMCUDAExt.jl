@@ -11,8 +11,8 @@ using KernelAbstractions
 import Atomix
 import SparseMatricesCOO: SparseMatrixCOO
 import LinearAlgebra: BlasFloat, Symmetric, Transpose, mul!, tril
-import MadNLP
-import MadNLPGPU
+import MadCore
+import MadCoreGPU
 import MadIPM
 
 import MadIPM: Models
@@ -29,12 +29,9 @@ import MadIPM.Models:
     _build_op,
     _adapt_batch_meta
 
-# Since MadNLPGPU 0.10, the CUDA solvers are defined in the package extension
-# MadNLPGPUCUDAExt: `MadNLPGPU.CUDSSSolver` is only assigned in the extension's
-# `__init__`, so it cannot be used at precompilation time.
-const MadNLPGPUCUDAExt = Base.get_extension(MadNLPGPU, :MadNLPGPUCUDAExt)
-const CUDSSSolver = MadNLPGPUCUDAExt.CUDSSSolver
-const CudssSolverOptions = MadNLPGPUCUDAExt.CudssSolverOptions
+# The cuDSS solver is implemented in the extension MadCoreGPUCUDSSExt and built with
+# `MadCore.create_linear_solver(CUDSSSolver, A)`.
+const CUDSSSolver = MadCoreGPU.CUDSSSolver
 
 include("models/sparse_operator.jl")
 include("models/scalar_models.jl")
