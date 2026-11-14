@@ -1,11 +1,19 @@
-module MadIPM
+"""
+    MadIPMCore
+
+The interior-point algorithm of MadIPM (Mehrotra predictor-corrector) for linear and quadratic
+programs, on the KKT systems and linear solver interface of MadCore. It loads no linear solver:
+the bundles `MadIPM` (CPU) and `cuMadIPM` (NVIDIA GPUs) load them and set
+[`default_linear_solver`](@ref).
+"""
+module MadIPMCore
 
 using Printf
 using LinearAlgebra
 import SparseArrays
 import MadCore
 import MadCore: full
-# TODO(M0): MadCore names MadIPM uses that are not in `MadCore.public_names()`. They are
+# TODO(M0): MadCore names MadIPMCore uses that are not in `MadCore.public_names()`. They are
 # called qualified (`MadCore._name`); each should become public with a documented
 # signature, or stop being needed once the batch layer moves to MadCore.
 #   _parse_indexes                     batch/madnlp/callback.jl
@@ -15,7 +23,6 @@ import MadCore: full
 #   _get_primary_options               utils.jl
 #   _set_aug_diagonal!                 kernels.jl
 # Also missing from MadCore: the status UNBOUNDED_PROBLEM_DETECTED (solver.jl).
-import LDLFactorizations
 import NLPModels
 import SparseMatricesCOO: SparseMatrixCOO
 
@@ -67,6 +74,15 @@ include("batch/madipm/solver.jl")
 
 export MPCSolver, madipm, madipm_batch
 
+"""
+    default_linear_solver(nlp)
+
+The linear solver `MPCSolver` uses for `nlp` when the option `linear_solver` is not given.
+MadIPMCore falls back to `MadCore.default_sparse_solver(nlp)`; the bundles `MadIPM` and
+`cuMadIPM` add methods for their array types.
+"""
+default_linear_solver(nlp) = MadCore.default_sparse_solver(nlp)
+
 MadCore.madsuite(::Val{:madipm}, args...; kwargs...) = madipm(args...; kwargs...)
 
-end # module MadIPM
+end # module MadIPMCore

@@ -1,4 +1,10 @@
-module MadIPMCUDAExt
+"""
+    cuMadIPM
+
+MadIPM on NVIDIA GPUs: MadIPMCore with the CUDA sparse operators and kernels of MadIPM and the
+GPU linear solvers of MadCoreGPU (cuDSS, cuSOLVER). Models on `CuVector` use cuDSS by default.
+"""
+module cuMadIPM
 
 using Adapt
 using LinearAlgebra
@@ -13,10 +19,10 @@ import SparseMatricesCOO: SparseMatrixCOO
 import LinearAlgebra: BlasFloat, Symmetric, Transpose, mul!, tril
 import MadCore
 import MadCoreGPU
-import MadIPM
+import MadIPMCore
 
-import MadIPM: Models
-import MadIPM.Models:
+import MadIPMCore: Models
+import MadIPMCore.Models:
     AbstractSparseOperator, SparseOperator,
     BatchSparseOperator, HostBatchSparseOperator,
     ModelData, ScalarModel, LPData, QPData, LinearModel, QuadraticModel,
@@ -33,6 +39,18 @@ import MadIPM.Models:
 # `MadCore.create_linear_solver(CUDSSSolver, A)`.
 const CUDSSSolver = MadCoreGPU.CUDSSSolver
 
+# cuMadIPM exports what MadIPMCore exports, and the GPU linear solvers.
+using MadIPMCore
+for name in names(MadIPMCore)
+    name === :MadIPMCore && continue
+    @eval export $name
+end
+using MadCoreGPU: LapackCUDASolver
+export CUDSSSolver, LapackCUDASolver
+
+# cuDSS is the default sparse linear solver for models on the GPU, as in cuMadNLP.
+MadIPMCore.default_linear_solver(::NLPModels.AbstractNLPModel{T, <:CuVector{T}}) where {T} = CUDSSSolver
+
 include("models/sparse_operator.jl")
 include("models/scalar_models.jl")
 include("models/mapreduce.jl")
@@ -42,7 +60,7 @@ include("models/scaling.jl")
 include("cuda_wrapper.jl")
 include("cuda_batch_kernels.jl")
 
-function MadIPM._csc_with_nzval(A::CUSPARSE.CuSparseMatrixCSC, nzval, n)
+function MadIPMCore._csc_with_nzval(A::CUSPARSE.CuSparseMatrixCSC, nzval, n)
     return CUSPARSE.CuSparseMatrixCSC(A.colPtr, A.rowVal, nzval, (n, n))
 end
 
@@ -62,7 +80,7 @@ end
 
 function CUSPARSE.CuSparseMatrixCSR(A::SparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     m, n = size(A)
-    Ap, Ai, Ax = MadIPM.coo_to_csr(m, n, A.rows, A.cols, A.vals)
+    Ap, Ai, Ax = MadIPMCore.coo_to_csr(m, n, A.rows, A.cols, A.vals)
     return CUSPARSE.CuSparseMatrixCSR{Tv, Ti}(
         CuVector(Ap),
         CuVector(Ai),
@@ -71,4 +89,4 @@ function CUSPARSE.CuSparseMatrixCSR(A::SparseMatrixCOO{Tv, Ti}) where {Tv, Ti}
     )
 end
 
-end
+end # module cuMadIPM

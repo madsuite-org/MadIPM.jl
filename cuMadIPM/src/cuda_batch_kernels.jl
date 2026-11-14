@@ -48,39 +48,39 @@ end
     return
 end
 
-function MadIPM.gather_batch_view_columns!(
+function MadIPMCore.gather_batch_view_columns!(
     dst::CuMatrix{TD},
     src::CuMatrix{TS},
-    batch_view::MadIPM.BatchView,
+    batch_view::MadIPMCore.BatchView,
 ) where {TD, TS}
-    na = MadIPM.local_batch_size(batch_view)
+    na = MadIPMCore.local_batch_size(batch_view)
     backend = CUDABackend()
-    _gather_batch_view_columns_kernel!(backend)(dst, src, MadIPM.local_to_root_dev(batch_view); ndrange=(size(dst, 1), na))
+    _gather_batch_view_columns_kernel!(backend)(dst, src, MadIPMCore.local_to_root_dev(batch_view); ndrange=(size(dst, 1), na))
     return dst
 end
 
-function MadIPM.scatter_batch_view_columns!(
+function MadIPMCore.scatter_batch_view_columns!(
     dst::CuMatrix{TD},
     src::CuMatrix{TS},
-    batch_view::MadIPM.BatchView,
+    batch_view::MadIPMCore.BatchView,
 ) where {TD, TS}
-    na = MadIPM.local_batch_size(batch_view)
+    na = MadIPMCore.local_batch_size(batch_view)
     backend = CUDABackend()
-    _scatter_batch_view_columns_kernel!(backend)(dst, src, MadIPM.local_to_root_dev(batch_view); ndrange=(size(src, 1), na))
+    _scatter_batch_view_columns_kernel!(backend)(dst, src, MadIPMCore.local_to_root_dev(batch_view); ndrange=(size(src, 1), na))
     return dst
 end
 
-function MadIPM.compact_active_columns_inplace!(
+function MadIPMCore.compact_active_columns_inplace!(
     dst::CuMatrix{T},
-    batch_view::MadIPM.BatchView,
+    batch_view::MadIPMCore.BatchView,
     scratch::CuMatrix{T},
 ) where T
-    na = MadIPM.local_batch_size(batch_view)
+    na = MadIPMCore.local_batch_size(batch_view)
     na == 0 && return dst
     nrows = size(dst, 1)
     copyto!(view(scratch, 1:nrows, :), view(dst, 1:nrows, :))
     backend = CUDABackend()
-    _compact_active_columns_inplace_kernel!(backend)(dst, scratch, MadIPM.local_to_root_dev(batch_view); ndrange=(nrows, na))
+    _compact_active_columns_inplace_kernel!(backend)(dst, scratch, MadIPMCore.local_to_root_dev(batch_view); ndrange=(nrows, na))
     return dst
 end
 
@@ -185,16 +185,16 @@ function _launch_ftb_kernel!(kernel_fn, alpha_out, nrows, srcs...)
     kernel(alpha_out, srcs..., nrows; threads, blocks = reduce_blocks * bs)
 end
 
-function MadIPM._ftb_primal_lb!(alpha_out::AnyCuMatrix, dx::AnyCuMatrix, x::AnyCuMatrix, xb::AnyCuMatrix, tau::AnyCuMatrix)
+function MadIPMCore._ftb_primal_lb!(alpha_out::AnyCuMatrix, dx::AnyCuMatrix, x::AnyCuMatrix, xb::AnyCuMatrix, tau::AnyCuMatrix)
     _launch_ftb_kernel!(_ftb_primal_lb_kernel!, alpha_out, size(dx, 1), dx, x, xb, tau)
 end
-function MadIPM._ftb_primal_ub!(alpha_out::AnyCuMatrix, dx::AnyCuMatrix, x::AnyCuMatrix, xb::AnyCuMatrix, tau::AnyCuMatrix)
+function MadIPMCore._ftb_primal_ub!(alpha_out::AnyCuMatrix, dx::AnyCuMatrix, x::AnyCuMatrix, xb::AnyCuMatrix, tau::AnyCuMatrix)
     _launch_ftb_kernel!(_ftb_primal_ub_kernel!, alpha_out, size(dx, 1), dx, x, xb, tau)
 end
-function MadIPM._ftb_dual_lb!(alpha_out::AnyCuMatrix, dz::AnyCuMatrix, z::AnyCuMatrix, tau::AnyCuMatrix)
+function MadIPMCore._ftb_dual_lb!(alpha_out::AnyCuMatrix, dz::AnyCuMatrix, z::AnyCuMatrix, tau::AnyCuMatrix)
     _launch_ftb_kernel!(_ftb_dual_lb_kernel!, alpha_out, size(dz, 1), dz, z, tau)
 end
-function MadIPM._ftb_dual_ub!(alpha_out::AnyCuMatrix, dz::AnyCuMatrix, z::AnyCuMatrix, tau::AnyCuMatrix)
+function MadIPMCore._ftb_dual_ub!(alpha_out::AnyCuMatrix, dz::AnyCuMatrix, z::AnyCuMatrix, tau::AnyCuMatrix)
     _launch_ftb_kernel!(_ftb_dual_ub_kernel!, alpha_out, size(dz, 1), dz, z, tau)
 end
 
@@ -246,12 +246,12 @@ function _launch_reduce_kernel!(kernel_fn, out, nrows, srcs...)
     kernel(out, srcs..., nrows; threads, blocks = reduce_blocks * bs)
 end
 
-function MadIPM._affine_compl_lb!(out::AnyCuMatrix, x::AnyCuMatrix, xl::AnyCuMatrix, z::AnyCuMatrix,
+function MadIPMCore._affine_compl_lb!(out::AnyCuMatrix, x::AnyCuMatrix, xl::AnyCuMatrix, z::AnyCuMatrix,
                                    dx::AnyCuMatrix, dz::AnyCuMatrix, αp::AnyCuMatrix, αd::AnyCuMatrix)
     _launch_reduce_kernel!(_affine_compl_lb_kernel!, out, size(x, 1), x, xl, z, dx, dz, αp, αd)
 end
 
-function MadIPM._affine_compl_ub!(out::AnyCuMatrix, xu::AnyCuMatrix, x::AnyCuMatrix, z::AnyCuMatrix,
+function MadIPMCore._affine_compl_ub!(out::AnyCuMatrix, xu::AnyCuMatrix, x::AnyCuMatrix, z::AnyCuMatrix,
                                    dx::AnyCuMatrix, dz::AnyCuMatrix, αp::AnyCuMatrix, αd::AnyCuMatrix)
     _launch_reduce_kernel!(_affine_compl_ub_kernel!, out, size(x, 1), xu, x, z, dx, dz, αp, αd)
 end
@@ -384,7 +384,7 @@ _mehrotra_step_kernel!(
     return nothing
 end
 
-function MadIPM._mehrotra_step!(
+function MadIPMCore._mehrotra_step!(
     alpha_p::AnyCuMatrix, alpha_d, mu, gamma_f,
     dx_lr, x_lr, xl_r, nlb, dzlb, zl_r,
     dx_ur, x_ur, xu_r, nub, dzub, zu_r,
@@ -410,7 +410,7 @@ end
     @inbounds values[ind_ub[i], j] -= values[ub_off + i, j] / u_diag[i, j]
 end
 
-function MadIPM._reduce_rhs_batch!(values::CuMatrix, ind_lb, lb_off, l_diag,
+function MadIPMCore._reduce_rhs_batch!(values::CuMatrix, ind_lb, lb_off, l_diag,
                                                       ind_ub, ub_off, u_diag)
     bs = size(values, 2); backend = CUDABackend()
     nlb = length(ind_lb)
@@ -430,7 +430,7 @@ end
     @inbounds values[ub_off + i, j] = (values[ub_off + i, j] - u_lower[i, j] * values[ind_ub[i], j]) / u_diag[i, j]
 end
 
-function MadIPM._finish_aug_solve_batch!(values::CuMatrix, ind_lb, lb_off, l_lower, l_diag,
+function MadIPMCore._finish_aug_solve_batch!(values::CuMatrix, ind_lb, lb_off, l_lower, l_diag,
                                                             ind_ub, ub_off, u_lower, u_diag)
     bs = size(values, 2); backend = CUDABackend()
     nlb = length(ind_lb)
@@ -502,10 +502,10 @@ function _kktmul_upper_kernel!(
     return nothing
 end
 
-function MadIPM._kktmul!(
-    w::MadIPM.BatchUnreducedKKTVector{T,<:CuMatrix{T}},
-    x::MadIPM.BatchUnreducedKKTVector{T,<:CuMatrix{T}},
-    kkt::MadIPM.SparseUniformBatchKKTSystem{T},
+function MadIPMCore._kktmul!(
+    w::MadIPMCore.BatchUnreducedKKTVector{T,<:CuMatrix{T}},
+    x::MadIPMCore.BatchUnreducedKKTVector{T,<:CuMatrix{T}},
+    kkt::MadIPMCore.SparseUniformBatchKKTSystem{T},
     alpha,
     beta,
 ) where T

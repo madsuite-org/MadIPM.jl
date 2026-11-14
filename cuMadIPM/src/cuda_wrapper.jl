@@ -1,6 +1,6 @@
 import LinearAlgebra: BlasFloat
 
-function MadIPM._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMatrixCSC{T, Cint}; opt) where T
+function MadIPMCore._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMatrixCSC{T, Cint}; opt) where T
     return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
@@ -35,7 +35,7 @@ function MadCore.compress_hessian!(
 end
 
 function MadCore.compress_jacobian!(
-    kkt::MadIPM.NormalKKTSystem{T,VT,MT},
+    kkt::MadIPMCore.NormalKKTSystem{T,VT,MT},
 ) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
     n_slack = length(kkt.ind_ineq)
     kkt.A.V[end-n_slack+1:end] .= -1.0
@@ -45,7 +45,7 @@ function MadCore.compress_jacobian!(
     return
 end
 
-function MadIPM.coo_to_csr(
+function MadIPMCore.coo_to_csr(
     n_rows,
     n_cols,
     Ai::CuVector{Ti},
@@ -90,7 +90,7 @@ end
     nothing
 end
 
-function MadIPM.assemble_normal_system!(
+function MadIPMCore.assemble_normal_system!(
     n_rows,
     n_cols,
     Jtp::CuArray{Ti},
@@ -108,13 +108,13 @@ end
 
 
 
-MadIPM.sparse_csc_format(::Type{<:CuArray}) = CuSparseMatrixCSC
-MadIPM._colptr(A::CuSparseMatrixCSC) = A.colPtr
-MadIPM._rowval(A::CuSparseMatrixCSC) = A.rowVal
-MadIPM._nzval(A::CuSparseMatrixCSC) = A.nzVal
+MadIPMCore.sparse_csc_format(::Type{<:CuArray}) = CuSparseMatrixCSC
+MadIPMCore._colptr(A::CuSparseMatrixCSC) = A.colPtr
+MadIPMCore._rowval(A::CuSparseMatrixCSC) = A.rowVal
+MadIPMCore._nzval(A::CuSparseMatrixCSC) = A.nzVal
 
 # we introduce a new constructor that takes the nzvals as a matrix explicitly
-function MadIPM.create_batch_linear_solver(
+function MadIPMCore.create_batch_linear_solver(
     ::Type{CUDSSSolver},
     aug_com::CUSPARSE.CuSparseMatrixCSC{T,Cint},
     nzvals_mat::CuMatrix{T},
@@ -137,9 +137,9 @@ function _check_cudss(s)
     return
 end
 
-function MadIPM.factorize_active!(s::MadCore.AbstractLinearSolver, active::MadIPM.BatchView)
+function MadIPMCore.factorize_active!(s::MadCore.AbstractLinearSolver, active::MadIPMCore.BatchView)
     _check_cudss(s)
-    na = MadIPM.local_batch_size(active)
+    na = MadIPMCore.local_batch_size(active)
     # Recent cuDSS versions reject a new `ubatch_size` until the next analysis phase.
     if CUDSS.cudss_get(s.inner, "ubatch_size") != na
         CUDSS.cudss_set(s.inner, "ubatch_size", na)
@@ -149,9 +149,9 @@ function MadIPM.factorize_active!(s::MadCore.AbstractLinearSolver, active::MadIP
     return
 end
 
-function MadIPM.solve_active!(s::MadCore.AbstractLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
+function MadIPMCore.solve_active!(s::MadCore.AbstractLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPMCore.BatchView) where T
     _check_cudss(s)
-    na = MadIPM.local_batch_size(active)
+    na = MadIPMCore.local_batch_size(active)
     n = size(rhs, 1)
     rhs_active = unsafe_wrap(CuArray{T, 2}, pointer(rhs), (n, na))
     CUDSS.cudss_update(s.b_gpu, rhs_active)
@@ -161,5 +161,5 @@ function MadIPM.solve_active!(s::MadCore.AbstractLinearSolver{T}, rhs::CuMatrix{
 end
 
 # Disambiguation with the method for CPU and looped solvers.
-MadIPM.solve_active!(s::MadIPM.LoopedBatchLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T =
-    invoke(MadIPM.solve_active!, Tuple{MadIPM.LoopedBatchLinearSolver{T}, AbstractMatrix{T}, MadIPM.BatchView}, s, rhs, active)
+MadIPMCore.solve_active!(s::MadIPMCore.LoopedBatchLinearSolver{T}, rhs::CuMatrix{T}, active::MadIPMCore.BatchView) where T =
+    invoke(MadIPMCore.solve_active!, Tuple{MadIPMCore.LoopedBatchLinearSolver{T}, AbstractMatrix{T}, MadIPMCore.BatchView}, s, rhs, active)

@@ -102,7 +102,7 @@ end
 function IPMOptions(
     nlp::NLPModels.AbstractNLPModel{T};
     kkt_system = MadCore.SparseKKTSystem,
-    linear_solver = MadCore.default_sparse_solver(nlp),
+    linear_solver = default_linear_solver(nlp),
     tol = 1e-8,
 ) where {T}
     return IPMOptions(tol = tol, kkt_system = kkt_system, linear_solver = linear_solver)

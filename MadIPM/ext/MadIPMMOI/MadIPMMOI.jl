@@ -11,7 +11,7 @@
 
 =#
 
-module MadIPMMathOptInterfaceExt
+module MadIPMMOI
 
 using Adapt
 using MathOptInterface
@@ -27,7 +27,7 @@ include("parse_moi.jl")
 include("MOI_wrapper.jl")
 
 function __init__()
-    @eval MadIPM const Optimizer = $Optimizer
+    setglobal!(MadIPM, :Optimizer, Optimizer)
 end
 
 end
