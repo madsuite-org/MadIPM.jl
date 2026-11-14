@@ -16,10 +16,10 @@ function MadCore.transfer!(
     src::MadCore.SparseMatrixCOO{Tv},
     map::CuVector{Int},
 ) where {Tv}
-    return MadCore._transfer!(dest.nzVal, src.V, map)
+    return MadCore.transfer_values!(dest.nzVal, src.V, map)
 end
 
-function MadCore._transfer!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
+function MadCore.transfer_values!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
     fill!(dest, zero(T))
     if length(map) > 0
         backend = CUDABackend()

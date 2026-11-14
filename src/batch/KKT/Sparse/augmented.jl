@@ -45,7 +45,7 @@ function MadCore.create_kkt_system(
     m = bcb.ncon
     jac_sparsity_I = MadCore.create_array(bcb, Int32, bcb.nnzj)
     jac_sparsity_J = MadCore.create_array(bcb, Int32, bcb.nnzj)
-    MadCore._jac_sparsity_wrapper!(bcb, jac_sparsity_I, jac_sparsity_J)
+    MadCore.jac_sparsity_callback!(bcb, jac_sparsity_I, jac_sparsity_J)
 
     hess_sparsity_I, hess_sparsity_J =
         MadCore.build_hessian_structure(bcb, MadCore.ExactHessian)
@@ -276,7 +276,7 @@ function MadCore.solve_kkt!(
 end
 
 function MadCore.build_kkt!(bkkt::SparseUniformBatchKKTSystem)
-    MadCore._transfer!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
+    MadCore.transfer_values!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
     return
 end
 
@@ -317,7 +317,7 @@ function MadCore.eval_jac_wrapper!(
     n_slack = length(bcb.ind_ineq)
 
     MadCore.unpack_x!(ws.bx, bcb, batch_solver.x)
-    jac_free = MadCore._eval_jac_wrapper!(bcb, ws.bx, bcb.jac_buffer)
+    jac_free = MadCore.eval_jac_callback!(bcb, ws.bx, bcb.jac_buffer)
 
     jac_offset = n_tot + bkkt.nnzh
     view(nzVals, (jac_offset+1):(jac_offset+nnzj), :) .= jac_free
@@ -346,7 +346,7 @@ function MadCore.eval_lag_hess_wrapper!(
         MadCore.unpack_x!(ws.bx, bcb, batch_solver.x)
         bf_mat = reshape(ws.bf, 1, batch_solver.batch_size)
         @. bf_mat = bcb.obj_sign * bcb.obj_scale
-        MadCore._eval_lag_hess_wrapper!(
+        MadCore.eval_lag_hess_callback!(
             bcb,
             ws.bx,
             MadCore.full(batch_solver.y),
