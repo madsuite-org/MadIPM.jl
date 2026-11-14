@@ -12,24 +12,29 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseMatricesCOO = "fa32481b-f100-4b48-8dc8-c62f61b13870"
 
+[weakdeps]
+Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
+GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+MadCoreGPU = "bc174d20-fbd0-43bd-9ba9-5b5faf23ea88"
+
+[extensions]
+# KernelAbstractions, Atomix and GPUArraysCore load with MadCoreGPU, so this loads with it
+MadIPMCoreGPUExt = ["MadCoreGPU", "KernelAbstractions", "Atomix", "GPUArraysCore"]
+
 [sources]
 MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
 
 [compat]
 Adapt = "4"
-LDLFactorizations = "0.10.1"
+Atomix = "1"
+GPUArraysCore = "0.2"
+KernelAbstractions = "0.9, 0.10"
 LinearAlgebra = "1.10"
 MadCore = "0.12"
+MadCoreGPU = "0.12"
 NLPModels = "0.21.12"
 Printf = "1.10"
 SparseArrays = "1.10"
 SparseMatricesCOO = "0.2.4"
-Test = "1.10"
 julia = "1.10"
-
-[extras]
-LDLFactorizations = "40e66cde-538c-5869-a4ad-c39174c6795b"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test", "LDLFactorizations"]

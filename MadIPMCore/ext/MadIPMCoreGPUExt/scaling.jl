@@ -1,5 +1,7 @@
-const CuSparseCOO{T} = Models.Scaling.SparseCOO{T, Ti, V, Vi} where
-  {Ti, V <: CuVector{T}, Vi <: CuVector{Ti}}
+# Kernels of the Ruiz equilibration of the LP/QP models (Models.Scaling)
+
+const GPUSparseCOO{T} = Models.Scaling.SparseCOO{T, Ti, V, Vi} where
+  {Ti, V <: AbstractGPUVector{T}, Vi <: AbstractGPUVector{Ti}}
 
 @inline _atomic_max!(dst, i, value) = begin
   old = dst[i]
@@ -54,24 +56,24 @@ end
   end
 end
 
-function Models.Scaling.scaled_maxabs!(rownrm::CuVector{T}, colnrm::CuVector{T},
-                                       rowpair::CuVector{Int}, colpair::CuVector{Int},
-                                       A::CuSparseCOO{T},
-                                       drow::CuVector{T}, dcol::CuVector{T}) where {T <: AbstractFloat}
+function Models.Scaling.scaled_maxabs!(rownrm::AbstractGPUVector{T}, colnrm::AbstractGPUVector{T},
+                                       rowpair::AbstractGPUVector{Int}, colpair::AbstractGPUVector{Int},
+                                       A::GPUSparseCOO{T},
+                                       drow::AbstractGPUVector{T}, dcol::AbstractGPUVector{T}) where {T <: AbstractFloat}
   isempty(A.nzval) && return rownrm, colnrm
-  _coo_scaled_maxabs_kernel!(CUDABackend())(
+  _coo_scaled_maxabs_kernel!(get_backend(rownrm))(
     rownrm, colnrm, rowpair, colpair, A.rowval, A.colval, A.nzval, drow, dcol;
     ndrange = length(A.nzval))
   return rownrm, colnrm
 end
 
-function Models.Scaling.scaled_argmax!(rowcand::CuVector{Int}, colcand::CuVector{Int},
-                                       rownrm::CuVector{T}, colnrm::CuVector{T},
-                                       rowpair::CuVector{Int}, colpair::CuVector{Int},
-                                       A::CuSparseCOO{T},
-                                       drow::CuVector{T}, dcol::CuVector{T}) where {T <: AbstractFloat}
+function Models.Scaling.scaled_argmax!(rowcand::AbstractGPUVector{Int}, colcand::AbstractGPUVector{Int},
+                                       rownrm::AbstractGPUVector{T}, colnrm::AbstractGPUVector{T},
+                                       rowpair::AbstractGPUVector{Int}, colpair::AbstractGPUVector{Int},
+                                       A::GPUSparseCOO{T},
+                                       drow::AbstractGPUVector{T}, dcol::AbstractGPUVector{T}) where {T <: AbstractFloat}
   isempty(A.nzval) && return rowcand, colcand
-  _coo_scaled_argmax_kernel!(CUDABackend())(
+  _coo_scaled_argmax_kernel!(get_backend(rowcand))(
     rowcand, colcand, rownrm, colnrm, rowpair, colpair,
     A.rowval, A.colval, A.nzval, drow, dcol;
     ndrange = length(A.nzval))
@@ -89,8 +91,8 @@ end
   end
 end
 
-function Models.Scaling.settle_pairs!(rowpair::CuVector{Int}, colpair::CuVector{Int})
+function Models.Scaling.settle_pairs!(rowpair::AbstractGPUVector{Int}, colpair::AbstractGPUVector{Int})
   isempty(colpair) && return nothing
-  _settle_pairs_kernel!(CUDABackend())(rowpair, colpair; ndrange = length(colpair))
+  _settle_pairs_kernel!(get_backend(rowpair))(rowpair, colpair; ndrange = length(colpair))
   return nothing
 end

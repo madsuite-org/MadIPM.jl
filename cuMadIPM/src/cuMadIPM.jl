@@ -56,7 +56,6 @@ include("models/scalar_models.jl")
 include("models/mapreduce.jl")
 include("models/batch_operator.jl")
 include("models/batch_models.jl")
-include("models/scaling.jl")
 include("cuda_wrapper.jl")
 include("cuda_batch_kernels.jl")
 

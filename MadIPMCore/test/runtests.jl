@@ -14,3 +14,6 @@ import MadIPMCore.Models: LPData, LinearModel
     # without a bundle there is no default linear solver: MadCore's placeholder, which errors when used
     @test MadIPMCore.default_linear_solver(lp) === MadCore.DummySolver
 end
+
+# MadIPMCoreGPUExt is tested by the GPU bundles, which call `test_madipmcore_gpu_ext` of
+# gpu_ext.jl with their array type.

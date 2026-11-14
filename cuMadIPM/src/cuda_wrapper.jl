@@ -4,28 +4,12 @@ function MadIPMCore._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMat
     return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
-@kernel function _transfer_to_map!(dest, to_map, src)
-    k = @index(Global, Linear)
-    @inbounds begin
-        Atomix.@atomic dest[to_map[k]] += src[k]
-    end
-end
-
 function MadCore.transfer!(
     dest::CUSPARSE.CuSparseMatrixCSC{Tv},
     src::MadCore.SparseMatrixCOO{Tv},
     map::CuVector{Int},
 ) where {Tv}
     return MadCore.transfer_values!(dest.nzVal, src.V, map)
-end
-
-function MadCore.transfer_values!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
-    fill!(dest, zero(T))
-    if length(map) > 0
-        backend = CUDABackend()
-        _transfer_to_map!(backend)(dest, map, src; ndrange=length(map))
-    end
-    return
 end
 
 function MadCore.compress_hessian!(
@@ -55,55 +39,6 @@ function MadIPMCore.coo_to_csr(
     @assert length(Ai) == length(Aj) == length(Ax)
     B = sparse(Ai, Aj, Ax, n_rows, n_cols; fmt=:csr)
     return (B.rowPtr, B.colVal, B.nzVal)
-end
-
-@kernel function assemble_normal_system_kernel!(@Const(n_rows), @Const(n_cols), @Const(Jtp), @Const(Jtj), @Const(Jtx),
-                                                @Const(Cp), @Const(Cj), Cx, @Const(Dx), @Const(Tv))
-    i = @index(Global, Linear)
-
-    for c in Cp[i]:Cp[i+1]-1
-        j = Cj[c]
-        acc = zero(Tv)
-
-        p1 = Jtp[i]
-        p2 = Jtp[j]
-        p1_end = Jtp[i+1] - 1
-        p2_end = Jtp[j+1] - 1
-
-        while p1 <= p1_end && p2 <= p2_end
-            k1 = Jtj[p1]
-            k2 = Jtj[p2]
-
-            if k1 == k2
-                acc += Jtx[p1] * Dx[k1] * Jtx[p2]
-                p1 += 1
-                p2 += 1
-            elseif k1 < k2
-                p1 += 1
-            else
-                p2 += 1
-            end
-        end
-
-        Cx[c] = acc
-    end
-    nothing
-end
-
-function MadIPMCore.assemble_normal_system!(
-    n_rows,
-    n_cols,
-    Jtp::CuArray{Ti},
-    Jtj::CuArray{Ti},
-    Jtx::CuArray{Tv},
-    Cp::CuArray{Ti},
-    Cj::CuArray{Ti},
-    Cx::CuArray{Tv},
-    Dx::CuArray{Tv},
-) where {Ti, Tv}
-    backend = CUDABackend()
-    kernel! = assemble_normal_system_kernel!(backend)
-    kernel!(n_rows, n_cols, Jtp, Jtj, Jtx, Cp, Cj, Cx, Dx, Tv; ndrange = n_rows)
 end
 
 
