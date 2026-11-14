@@ -195,8 +195,7 @@ function UniformBatchMPCSolver(
 
     nvar_nlp = bmeta.nvar
 
-    opt_batch_ls = MadCore.default_options(uniformbatch_linear_solver)
-    remaining_kwargs = MadCore.set_options!(opt_batch_ls, kwargs)
+    opt_batch_ls, remaining_kwargs = batch_linear_solver_options(uniformbatch_linear_solver, kwargs)
 
     options = load_options(bnlp; remaining_kwargs...)
     ipm_opt = options.interior_point
