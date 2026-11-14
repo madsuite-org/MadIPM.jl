@@ -20,8 +20,9 @@ end
 
 export MPCSolver, madipm, madipm_batch
 
-# MUMPS is the default sparse linear solver, as in MadNLP.
-MadIPMCore.default_linear_solver(::NLPModels.AbstractNLPModel) = MadCore.MumpsSolver
+# MUMPS is the default sparse linear solver for models on the CPU, as in MadNLP. Models on other
+# arrays keep the fallback of MadIPMCore (a GPU bundle, or MadCore.default_sparse_solver).
+MadIPMCore.default_linear_solver(::NLPModels.AbstractNLPModel{T, <:Vector{T}}) where {T} = MadCore.MumpsSolver
 
 global Optimizer
 

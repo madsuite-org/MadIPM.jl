@@ -3,26 +3,6 @@
 const GPUSparseCOO{T} = Models.Scaling.SparseCOO{T, Ti, V, Vi} where
   {Ti, V <: AbstractGPUVector{T}, Vi <: AbstractGPUVector{Ti}}
 
-@inline _atomic_max!(dst, i, value) = begin
-  old = dst[i]
-  while value > old
-    result = Atomix.@atomicreplace dst[i] old => value
-    old = result.old
-    result.success && break
-  end
-  return
-end
-
-@inline _atomic_min!(dst, i, value) = begin
-  old = dst[i]
-  while value < old
-    result = Atomix.@atomicreplace dst[i] old => value
-    old = result.old
-    result.success && break
-  end
-  return
-end
-
 @kernel function _coo_scaled_maxabs_kernel!(rownrm, colnrm, @Const(rowpair), @Const(colpair),
                                             @Const(rowval), @Const(colval), @Const(nzval),
                                             @Const(drow), @Const(dcol))

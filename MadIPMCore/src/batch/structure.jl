@@ -185,7 +185,7 @@ function UniformBatchMPCSolver(
     bnlp::NLPModels.AbstractBatchNLPModel{T,MT};
     VT = typeof(similar(NLPModels.get_x0(bnlp), T, 0)),
     VI = typeof(similar(NLPModels.get_x0(bnlp), Int, 0)),
-    uniformbatch_linear_solver = LoopedBatchLinearSolver,
+    uniformbatch_linear_solver = default_batch_linear_solver(bnlp),
     check_batch_structure::Bool = true,
     kwargs...,
 ) where {T,MT}

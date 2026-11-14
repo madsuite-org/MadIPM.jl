@@ -10,11 +10,6 @@ end
     @inbounds dst[i, local_to_root[j]] = src[i, j]
 end
 
-@kernel function _compact_active_columns_inplace_kernel!(dst, @Const(src), @Const(local_to_root))
-    i, j = @index(Global, NTuple)
-    @inbounds dst[i, j] = src[i, local_to_root[j]]
-end
-
 function MadIPMCore.gather_batch_view_columns!(
     dst::AbstractGPUMatrix{TD},
     src::AbstractGPUMatrix{TS},
@@ -47,6 +42,6 @@ function MadIPMCore.compact_active_columns_inplace!(
     nrows = size(dst, 1)
     copyto!(view(scratch, 1:nrows, :), view(dst, 1:nrows, :))
     backend = get_backend(dst)
-    _compact_active_columns_inplace_kernel!(backend)(dst, scratch, MadIPMCore.local_to_root_dev(batch_view); ndrange=(nrows, na))
+    _gather_batch_view_columns_kernel!(backend)(dst, scratch, MadIPMCore.local_to_root_dev(batch_view); ndrange=(nrows, na))
     return dst
 end

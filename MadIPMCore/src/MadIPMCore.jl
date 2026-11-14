@@ -83,6 +83,16 @@ MadIPMCore falls back to `MadCore.default_sparse_solver(nlp)`; the bundles `MadI
 """
 default_linear_solver(nlp) = MadCore.default_sparse_solver(nlp)
 
+"""
+    default_batch_linear_solver(bnlp)
+
+The linear solver `UniformBatchMPCSolver` (and `madipm_batch`) uses for the batch model `bnlp`
+when the option `uniformbatch_linear_solver` is not given. MadIPMCore falls back to
+`LoopedBatchLinearSolver`, which factorizes each instance with `looped_linear_solver`; the
+bundle `cuMadIPM` adds a method for models on the GPU.
+"""
+default_batch_linear_solver(bnlp) = LoopedBatchLinearSolver
+
 MadCore.madsuite(::Val{:madipm}, args...; kwargs...) = madipm(args...; kwargs...)
 
 end # module MadIPMCore

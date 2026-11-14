@@ -50,6 +50,8 @@ export CUDSSSolver, LapackCUDASolver
 
 # cuDSS is the default sparse linear solver for models on the GPU, as in cuMadNLP.
 MadIPMCore.default_linear_solver(::NLPModels.AbstractNLPModel{T, <:CuVector{T}}) where {T} = CUDSSSolver
+# and the uniform batch of cuDSS for batches on the GPU
+MadIPMCore.default_batch_linear_solver(::NLPModels.AbstractBatchNLPModel{T, <:CuMatrix{T}}) where {T} = CUDSSSolver
 
 include("models/sparse_operator.jl")
 include("models/scalar_models.jl")
