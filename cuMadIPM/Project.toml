@@ -1,0 +1,46 @@
+name = "cuMadIPM"
+uuid = "cd8b581e-6fd1-4d67-8766-efd8e72484d5"
+version = "0.3.0"
+authors = ["François Pacaud <francoispacaud8@gmail.com>", "Alexis Montoison <amontoison@anl.gov>"]
+
+[deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+CUDACore = "bd0ed864-bdfe-4181-a5ed-ce625a5fdea2"
+CUDSS = "45b445bb-4962-46a0-9369-b4df9d0f772e"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
+MadCoreGPU = "bc174d20-fbd0-43bd-9ba9-5b5faf23ea88"
+MadIPMCore = "cce603d1-82cb-4059-8043-76fdfb6af000"
+NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseMatricesCOO = "fa32481b-f100-4b48-8dc8-c62f61b13870"
+cuBLAS = "182d3088-87b7-4494-8cad-fc6afaa545bc"
+cuSOLVER = "887afef0-6a32-4de5-add4-7827692ba8fc"
+cuSPARSE = "b26da814-b3bc-49ef-b0ee-c816305aa060"
+
+[sources]
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
+MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCoreGPU"}
+MadIPMCore = {path = "../MadIPMCore"}
+
+[compat]
+Adapt = "4"
+Atomix = "1"
+CUDA = "6"
+CUDACore = "6"
+CUDSS = "0.7, 0.8, 1"
+KernelAbstractions = "0.9, 0.10"
+LinearAlgebra = "1.10"
+MadCore = "0.12"
+MadCoreGPU = "0.12"
+MadIPMCore = "=0.3.0"
+NLPModels = "0.21.12"
+SparseArrays = "1.10"
+SparseMatricesCOO = "0.2.4"
+cuBLAS = "6"
+cuSOLVER = "6"
+cuSPARSE = "6"
+julia = "1.10"

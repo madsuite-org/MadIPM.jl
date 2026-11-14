@@ -1,0 +1,11 @@
+[deps]
+LDLFactorizations = "40e66cde-538c-5869-a4ad-c39174c6795b"
+MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
+MadIPMCore = "cce603d1-82cb-4059-8043-76fdfb6af000"
+NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+MadIPMCore = {path = ".."}
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
