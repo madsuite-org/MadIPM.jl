@@ -4,20 +4,6 @@ function MadIPMCore._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMat
     return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
-function MadCore.transfer!(
-    dest::CUSPARSE.CuSparseMatrixCSC{Tv},
-    src::MadCore.SparseMatrixCOO{Tv},
-    map::CuVector{Int},
-) where {Tv}
-    return MadCore.transfer_values!(dest.nzVal, src.V, map)
-end
-
-function MadCore.compress_hessian!(
-    kkt::MadCore.SparseKKTSystem{T,VT,MT},
-) where {T,VT<:CuVector{T},MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}
-    MadCore.transfer!(kkt.hess_com, kkt.hess_raw, kkt.hess_csc_map)
-end
-
 function MadCore.compress_jacobian!(
     kkt::MadIPMCore.NormalKKTSystem{T,VT,MT},
 ) where {T,VT,MT<:CUSPARSE.CuSparseMatrixCSC{T,Int32}}

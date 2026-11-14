@@ -1,20 +1,12 @@
-# Kernels of NormalKKTSystem: the transfer of the COO values and the assembly of A D Aᵀ
+# Kernels of NormalKKTSystem: the assembly of A D Aᵀ
 
-@kernel function _transfer_to_map!(dest, to_map, src)
-    k = @index(Global, Linear)
-    @inbounds begin
-        Atomix.@atomic dest[to_map[k]] += src[k]
-    end
-end
-
-function MadCore.transfer_values!(dest::AbstractGPUVector{T}, src::AbstractGPUVector{T}, map::AbstractGPUVector{Int}) where T
-    fill!(dest, zero(T))
-    if length(map) > 0
-        backend = get_backend(dest)
-        _transfer_to_map!(backend)(dest, map, src; ndrange=length(map))
-    end
-    return
-end
+# The batch KKT system's COO to CSC transfer, with MadCoreGPU's kernel for `MadCore.transfer!`
+# (deterministic: no atomics). That kernel is internal: MadCoreGPU's public `transfer!` takes
+# the backends' sparse matrix types, and it has no GPU method for `MadCore.transfer_values!`.
+# TODO: when the batch layer moves to MadCore, use a public GPU method of
+# `MadCore.transfer_values!` instead
+MadIPMCore._transfer_coo_to_csc!(nzval::AbstractGPUVector, V, cscmap) =
+    MadCoreGPU._transfer_coo_to_csc!(nzval, V, cscmap)
 
 @kernel function assemble_normal_system_kernel!(@Const(n_rows), @Const(n_cols), @Const(Jtp), @Const(Jtj), @Const(Jtx),
                                                 @Const(Cp), @Const(Cj), Cx, @Const(Dx), @Const(Tv))
