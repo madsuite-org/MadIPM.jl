@@ -1,0 +1,34 @@
+#=
+    Adapted from NLPModelsJuMP.jl
+
+    The following source code is subject to the following LICENSE:
+
+    Copyright (c) 2018-2019: Abel Soares Siqueira and Dominique Orban
+    NLPModelsJuMP.jl is licensed under the MPL version 2.0.
+
+    Full license available at this URL:
+    https://github.com/JuliaSmoothOptimizers/NLPModelsJuMP.jl/blob/main/LICENSE.md
+
+=#
+
+module MadIPMMOI
+
+using Adapt
+using MathOptInterface
+using SparseMatricesCOO: SparseMatrixCOO
+import NLPModels
+import MadCore
+import MadIPM
+import MadIPM.Models: LinearModel, QuadraticModel, LPData, QPData
+
+const MOI = MathOptInterface
+
+include("parse_moi.jl")
+include("MOI_wrapper.jl")
+
+function __init__()
+    setglobal!(MadIPM, :Optimizer, Optimizer)
+end
+
+end
+

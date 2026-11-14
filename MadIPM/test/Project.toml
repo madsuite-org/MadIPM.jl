@@ -1,0 +1,25 @@
+[deps]
+LDLFactorizations = "40e66cde-538c-5869-a4ad-c39174c6795b"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
+MadIPM = "4406d55e-1099-4ca6-ac6a-6cf051b10024"
+MadIPMCore = "cce603d1-82cb-4059-8043-76fdfb6af000"
+MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
+MadNLPCore = "38486723-7c71-48b9-ad12-dc22a86097e8"
+MadNLPTests = "b52a2a03-04ab-4a5f-9698-6a2deff93217"
+MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseMatricesCOO = "fa32481b-f100-4b48-8dc8-c62f61b13870"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+MadNLP = "0.12"
+
+[sources]
+MadIPM = {path = ".."}
+MadIPMCore = {path = "../../MadIPMCore"}
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
+MadNLPCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPCore"}
+MadNLP = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLP"}
+MadNLPTests = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPTests"}
