@@ -72,8 +72,8 @@ MadNLP = "0.12"
 
 [sources]
 MadIPM = {path = ".."}
-MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCore"}
-MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCoreGPU"}
-MadNLPCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLPCore"}
-MadNLP = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLP"}
-MadNLPTests = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadNLPTests"}
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
+MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCoreGPU"}
+MadNLPCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPCore"}
+MadNLP = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLP"}
+MadNLPTests = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPTests"}

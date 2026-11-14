@@ -84,7 +84,7 @@ function MadIPM.compact_active_columns_inplace!(
     return dst
 end
 
-function MadCore._set_con_scale_sparse!(
+function MadCore.update_con_scale_sparse!(
     con_scale::CuMatrix{T},
     jac_I::CuVector{<:Integer},
     jac_buffer::CuMatrix{T},

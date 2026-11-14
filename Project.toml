@@ -30,8 +30,8 @@ MadIPMCUDAExt = ["Atomix", "CUDA", "CUDACore", "cuBLAS", "cuSOLVER", "cuSPARSE",
 MadIPMMathOptInterfaceExt = "MathOptInterface"
 
 [sources]
-MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCore"}
-MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-split", subdir = "MadCoreGPU"}
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
+MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCoreGPU"}
 
 [compat]
 Adapt = "4"

@@ -38,9 +38,9 @@ function MadCore.initialize!(
     MadCore.set_initial_bounds!(lvar, uvar, tol)
     x0 .= MadCore._initialize_variables!.(x0, lvar, uvar, bound_push, bound_fac)
 
-    x_full = MadCore._update_x!(bcb, x0)
+    x_full = MadCore.update_x!(bcb, x0)
     copyto!(bx_buffer, x_full)
-    MadCore._eval_cons_wrapper!(bcb, bx_buffer, bcb.con_buffer)
+    MadCore.eval_cons_callback!(bcb, bx_buffer, bcb.con_buffer)
 
     MadCore.slack(xl) .= view(lcon, ind_ineq, :)
     MadCore.slack(xu) .= view(ucon, ind_ineq, :)
@@ -66,12 +66,12 @@ function MadCore.set_con_scale_sparse!(
     max_gradient,
 ) where {T,MT<:AbstractMatrix{T}}
     fill!(con_scale, one(T))
-    MadCore._set_con_scale_sparse!(con_scale, jac_I, jac_buffer)
+    MadCore.update_con_scale_sparse!(con_scale, jac_I, jac_buffer)
     con_scale .= min.(one(T), max_gradient ./ con_scale)
     return con_scale
 end
 
-function MadCore._set_con_scale_sparse!(
+function MadCore.update_con_scale_sparse!(
     con_scale::MT,
     jac_I,
     jac_buffer,
@@ -115,14 +115,14 @@ function MadCore.set_scaling!(
     bx_buffer,
 )
     x0 = MadCore.variable(x)
-    x_full = MadCore._update_x!(cb, x0)
+    x_full = MadCore.update_x!(cb, x0)
     copyto!(bx_buffer, x_full)
 
-    jac_free = MadCore._eval_jac_wrapper!(cb, bx_buffer, cb.jac_buffer)
+    jac_free = MadCore.eval_jac_callback!(cb, bx_buffer, cb.jac_buffer)
     MadCore.set_con_scale_sparse!(cb.con_scale, cb.jac_I, jac_free, nlp_scaling_max_gradient)
     MadCore.set_jac_scale_sparse!(cb.jac_scale, cb.con_scale, cb.jac_I)
 
-    MadCore._eval_grad_f_wrapper!(cb, bx_buffer, cb.grad_buffer)
+    MadCore.eval_grad_f_callback!(cb, bx_buffer, cb.grad_buffer)
     MadCore.set_obj_scale!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
 
     con_scale_slk = @view(cb.con_scale[ind_ineq, :])
