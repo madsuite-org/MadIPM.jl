@@ -403,8 +403,14 @@ include("fakels.jl")
 
     @testset "kernel parity: $name" for (name, fn) in PROBLEMS_3
         qp = fn()
-        seq = _build_seq(qp)
-        bat = _build_bat(qp)
+        # With MUMPS's default pivot tolerance (1e-6), MUMPS accepts the ~1e-10 regularization
+        # entries of these KKT matrices as pivots and solves them only to 1e-8 to 1e-7. The two
+        # paths reduce in different orders (BLAS `dot` vs `batch_mapreduce!`), so e.g. the
+        # starting μ can differ by an ulp depending on the platform's BLAS kernel, and the
+        # inaccurate solves amplify that to ~1e-8. A larger pivot tolerance solves them to machine
+        # precision, so the paths can be compared at 1e-10 on every platform.
+        seq = _build_seq(qp; mumps_pivtol = 1e-3)
+        bat = _build_bat(qp; mumps_pivtol = 1e-3)
 
         @test cmp(MadNLP.full(seq.x), col1(MadNLP.full(bat.x))) < 1e-10
         @test cmp(seq.y, col1(MadNLP.full(bat.y))) < 1e-10
@@ -432,6 +438,11 @@ include("fakels.jl")
         mul!(w_s, seq.kkt, seq.d)
         mul!(w_b, bat.kkt, bat.d)
         @test cmp(MadNLP.full(w_s), col1(MadNLP.full(w_b))) < 1e-10
+        # each solve on its own: an inaccurate factorization fails here on every platform, even
+        # when both paths agree because they are equally wrong
+        relres(w, p) = norm(w .- p, Inf) / max(1.0, norm(p, Inf))
+        @test relres(MadNLP.full(w_s), MadNLP.full(seq.p)) < 1e-12
+        @test relres(col1(MadNLP.full(w_b)), col1(MadNLP.full(bat.p))) < 1e-12
 
         seq_mu = MadIPM.get_complementarity_measure(seq)
         MadIPM.get_complementarity_measure!(bat)
