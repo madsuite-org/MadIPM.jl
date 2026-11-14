@@ -115,6 +115,8 @@ function load_options(nlp; options...)
     opt_ipm = IPMOptions(nlp; primary_opt...)
     linear_solver_options = MadCore.set_options!(opt_ipm, options)
     # Initiate linear-solver options
+    # TODO: switch to MadCore's default_options(nlp, kkt_system, linear_solver) when the batch
+    # layer moves to MadCore, where a similar dispatch point can be defined for batch models
     opt_linear_solver = MadCore.default_options(opt_ipm.linear_solver)
     remaining_options = MadCore.set_options!(opt_linear_solver, linear_solver_options)
 
@@ -508,3 +510,17 @@ Build the batch linear solver `linear_solver` for the batch of matrices with the
 sparsity pattern of `aug_com` and the values in the columns of `nzvals_mat`.
 """
 function create_batch_linear_solver end
+
+"""
+    batch_linear_solver_options(linear_solver::Type, options)
+
+Return the options of the batch linear solver `linear_solver` built from `options`, and the
+options it does not use. Defaults to `default_options(linear_solver)` updated with
+`MadCore.set_options!`; a batch solver whose options are not filled in place (e.g.
+`LoopedBatchLinearSolver`, whose options type depends on the solver of its instances) adds a
+method.
+"""
+function batch_linear_solver_options(linear_solver::Type, options)
+    opt = MadCore.default_options(linear_solver)
+    return opt, MadCore.set_options!(opt, options)
+end

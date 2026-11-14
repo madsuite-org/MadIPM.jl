@@ -836,3 +836,15 @@ include("fakels.jl")
     end
 
 end
+
+@testset "Batch linear solver options" begin
+    MumpsOptions = typeof(MadNLP.default_options(MadNLP.MumpsSolver))
+    for (kw, expected) in (
+        ((;), MumpsOptions().mumps_pivtol),
+        ((; mumps_pivtol = 1e-2), 1e-2),
+        ((; looped_linear_solver_options = MumpsOptions(mumps_pivtol = 1e-3)), 1e-3),
+    )
+        b = _build_bat(_qp(); kw...)
+        @test all(ls -> ls.opt.mumps_pivtol == expected, b.kkt.batch_solver.solvers)
+    end
+end
