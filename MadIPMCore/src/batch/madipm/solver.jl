@@ -240,7 +240,8 @@ function initialize!(batch_solver::AbstractBatchMPCSolver{T}) where {T}
     init_starting_point!(batch_solver)
     initialize_solver_state!(batch_solver)
 
-    MadCore.jtprod!(batch_solver.jacl, batch_solver.kkt, batch_solver.y)
+    # the starting point moved x and y: evaluate the model there for the first iteration
+    evaluate_model!(batch_solver)
     return
 end
 
@@ -280,6 +281,7 @@ function compute_term_gpu!(ws::UniformBatchWorkspace{T}, opt) where {T}
     Int_SOLVED = Int(MadCore.SOLVE_SUCCEEDED)
     Int_INFEASIBLE = Int(MadCore.INFEASIBLE_PROBLEM_DETECTED)
     Int_DIVERGING = Int(MadCore.DIVERGING_ITERATES)
+    Int_UNBOUNDED = Int(MadCore.UNBOUNDED_PROBLEM_DETECTED)
     Int_REGULAR = Int(MadCore.REGULAR)
     cert_enabled = opt.certificate_termination
     pcert_tol = T(opt.primal_infeasibility_cert_tol)
@@ -300,7 +302,7 @@ function compute_term_gpu!(ws::UniformBatchWorkspace{T}, opt) where {T}
                     (ws.dual_cert_res <= dcert_tol) &
                     (ws.dual_cert_bound <= dcert_tol) &
                     (ws.dual_cert_margin > dcert_tol),
-                    Int_DIVERGING,
+                    Int_UNBOUNDED,
                     ifelse(
                         (ws.inf_compl > div_tol * ws.best_complementarity) &
                         (ws.dual_obj > max(ds * abs(ws.obj_val), one(T))),

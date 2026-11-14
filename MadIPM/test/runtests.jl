@@ -470,10 +470,8 @@ end
         MadNLP.primal(unbounded_solver.x) .= 1.0
         MadIPM.evaluate_model!(unbounded_solver)
         @test MadIPM.has_dual_infeasibility_certificate(unbounded_solver)
-        # Check is activated only if have proceeded to at least 3 iterations
-        unbounded_solver.cnt.k = 3
         MadIPM.update_termination_criteria!(unbounded_solver)
-        @test unbounded_solver.status == MadNLP.DIVERGING_ITERATES
+        @test unbounded_solver.status == MadNLP.UNBOUNDED_PROBLEM_DETECTED
     end
 
     @testset "Standard formulation" begin

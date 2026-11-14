@@ -187,7 +187,8 @@ function initialize!(solver::MadCore.AbstractMadNLPSolver{T}) where {T}
 
     solver.status = MadCore.REGULAR
 
-    MadCore.jtprod!(solver.jacl, solver.kkt, solver.y)
+    # the starting point moved x and y: evaluate the model there for the first iteration
+    evaluate_model!(solver)
     return
 end
 
@@ -211,10 +212,10 @@ function update_termination_criteria!(solver::MadCore.AbstractMadNLPSolver)
 
     if max(solver.inf_pr, solver.inf_du, solver.inf_compl) <= solver.opt.tol
         solver.status = MadCore.SOLVE_SUCCEEDED
-    elseif (iter >= 3) && has_primal_infeasibility_certificate(solver)
+    elseif has_primal_infeasibility_certificate(solver)
         solver.status = MadCore.INFEASIBLE_PROBLEM_DETECTED
-    elseif (iter >= 3) && has_dual_infeasibility_certificate(solver)
-        solver.status = MadCore.DIVERGING_ITERATES  # TODO: MadCore.UNBOUNDED_PROBLEM_DETECTED?
+    elseif has_dual_infeasibility_certificate(solver)
+        solver.status = MadCore.UNBOUNDED_PROBLEM_DETECTED
     elseif ((solver.inf_compl > solver.opt.divergence_tol * solver.best_complementarity) &&
             (dobj > max(solver.opt.divergence_scale * abs(solver.obj_val), 1.0)))
         solver.status = MadCore.INFEASIBLE_PROBLEM_DETECTED

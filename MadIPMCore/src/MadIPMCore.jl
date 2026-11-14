@@ -22,7 +22,6 @@ import MadCore: full
 #   _initialize_variables!             batch/madnlp/initialization.jl
 #   _get_primary_options               utils.jl
 #   _set_aug_diagonal!                 kernels.jl
-# Also missing from MadCore: the status UNBOUNDED_PROBLEM_DETECTED (solver.jl).
 import NLPModels
 import SparseMatricesCOO: SparseMatrixCOO
 

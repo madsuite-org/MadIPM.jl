@@ -405,6 +405,17 @@ include("fakels.jl")
         MadIPM.compute_term_gpu!(ws, bat.opt)
         @test _s(1) == MadNLP.DIVERGING_ITERATES
 
+        # a certificate of dual infeasibility (the batch analogue of the scalar check)
+        _set!()
+        saved = map(copy, (ws.primal_cert_res, ws.dual_cert_res, ws.dual_cert_bound, ws.dual_cert_margin))
+        ws.primal_cert_res .= Inf
+        ws.dual_cert_res .= 0.0
+        ws.dual_cert_bound .= 0.0
+        ws.dual_cert_margin .= 1.0
+        MadIPM.compute_term_gpu!(ws, bat.opt)
+        @test _s(1) == MadNLP.UNBOUNDED_PROBLEM_DETECTED
+        foreach(copyto!, (ws.primal_cert_res, ws.dual_cert_res, ws.dual_cert_bound, ws.dual_cert_margin), saved)
+
         _set!(pr = tol/10, du = tol/10, ic = tol/10, ls = Int32(1))
         MadIPM.compute_term_gpu!(ws, bat.opt)
         @test _s(1) == MadNLP.INTERNAL_ERROR
