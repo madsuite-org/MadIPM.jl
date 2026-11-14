@@ -6,11 +6,28 @@ struct LoopedBatchLinearSolver{T,VT,LS<:MadCore.AbstractLinearSolver{T}} <:
     batch_size::Int
 end
 
-@kwdef mutable struct LoopedBatchLinearSolverOptions <: MadCore.AbstractOptions
+@kwdef mutable struct LoopedBatchLinearSolverOptions{OT<:MadCore.AbstractOptions} <: MadCore.AbstractOptions
     looped_linear_solver::Type = MadCore.MumpsSolver
+    # options of the solver of each instance, e.g. `mumps_pivtol`
+    looped_linear_solver_options::OT = MadCore.default_options(looped_linear_solver)
 end
 
 MadCore.default_options(::Type{LoopedBatchLinearSolver}) = LoopedBatchLinearSolverOptions()
+
+# The options of the instances' solver (e.g. `mumps_pivtol`) go to each of them, as they would
+# to the solver of `MPCSolver`. Their type depends on `looped_linear_solver`, so they are built
+# (unless given) once it is set, and the options struct is built from both.
+function batch_linear_solver_options(::Type{LoopedBatchLinearSolver}, options)
+    remaining = Dict{Symbol,Any}(options)
+    opt_instance = pop!(remaining, :looped_linear_solver_options, nothing)
+    opt = MadCore.default_options(LoopedBatchLinearSolver)
+    remaining = MadCore.set_options!(opt, remaining)
+    if isnothing(opt_instance)
+        opt_instance = MadCore.default_options(opt.looped_linear_solver)
+    end
+    remaining = MadCore.set_options!(opt_instance, remaining)
+    return LoopedBatchLinearSolverOptions(opt.looped_linear_solver, opt_instance), remaining
+end
 
 function LoopedBatchLinearSolver(
     aug_com,
@@ -19,7 +36,7 @@ function LoopedBatchLinearSolver(
     opt::LoopedBatchLinearSolverOptions = LoopedBatchLinearSolverOptions(),
 ) where {T}
     linear_solver = opt.looped_linear_solver
-    per_instance_opt = MadCore.default_options(linear_solver)
+    per_instance_opt = opt.looped_linear_solver_options
     batch_size = size(nzvals_mat, 2)
     nnz_csc = size(nzvals_mat, 1)
     VT = typeof(similar(nzvals_mat, T, 0))
