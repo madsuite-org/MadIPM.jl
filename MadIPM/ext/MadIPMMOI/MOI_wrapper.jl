@@ -1,0 +1,278 @@
+
+mutable struct Optimizer <: MOI.AbstractOptimizer
+    options::Dict{String, Any}
+    presolve::Bool
+    silent::Bool
+    solver::Union{Nothing, MadIPM.MPCSolver}
+    qp::Union{Nothing, LinearModel, QuadraticModel}
+    array_type::Type{<:AbstractVector{Float64}}
+    stats::Union{
+        Nothing,
+        MadCore.MadNLPExecutionStats{Float64, <:AbstractVector{Float64}},
+    }
+    function Optimizer()
+        return new(Dict{String, Any}(), false, false, nothing, nothing, Vector{Float64}, nothing)
+    end
+end
+
+MOI.get(::Optimizer, ::MOI.SolverName) = "MadIPM"
+
+MOI.is_empty(optimizer::Optimizer) = isnothing(optimizer.solver) && isnothing(optimizer.qp)
+
+function MOI.empty!(optimizer::Optimizer)
+    optimizer.solver = nothing
+    optimizer.qp = nothing
+    optimizer.stats = nothing
+    return
+end
+
+###
+### MOI.RawOptimizerAttribute
+###
+
+function MOI.set(optimizer::Optimizer, param::MOI.RawOptimizerAttribute, value)
+    if param.name == "array_type"
+        optimizer.array_type = value
+    elseif param.name == "presolve"
+        optimizer.presolve = value
+    else
+        optimizer.options[param.name] = value
+    end
+    return
+end
+
+function MOI.get(optimizer::Optimizer, param::MOI.RawOptimizerAttribute)
+    return optimizer.options[param.name]
+end
+
+###
+### MOI.Silent
+###
+
+MOI.supports(::Optimizer, ::MOI.Silent) = true
+
+function MOI.set(optimizer::Optimizer, ::MOI.Silent, value::Bool)
+    optimizer.silent = value
+    return
+end
+
+MOI.get(optimizer::Optimizer, ::MOI.Silent) = optimizer.silent
+
+###
+### MOI.AbstractModelAttribute
+###
+
+function MOI.supports(
+    ::Optimizer,
+    ::Union{
+        MOI.ObjectiveSense,
+        MOI.ObjectiveFunction{<:Union{VI, SAF, SQF}},
+    },
+)
+    return true
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ObjectiveSense,
+)
+    qp = model.qp
+    return (qp.meta.minimize) ? MOI.MIN_SENSE : MOI.MAX_SENSE
+end
+
+
+###
+### MOI.AbstractVariableAttribute
+###
+
+function MOI.supports(::Optimizer, ::MOI.VariablePrimalStart, ::Type{MOI.VariableIndex})
+    return true
+end
+
+###
+### `supports_constraint`
+###
+
+MOI.supports_constraint(::Optimizer, ::Type{VI}, ::Type{<:_SCALAR_SETS}) = true
+MOI.supports_constraint(::Optimizer, ::Type{SAF}, ::Type{<:_SCALAR_SETS}) = true
+
+function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
+    dest.qp, index_map = qp_model(src)
+    if dest.presolve
+        dest.qp, flag = MadIPM.presolve_qp(dest.qp)
+    end
+    if dest.array_type != Vector{Float64}
+        VT = dest.array_type
+        backend_array = Base.typename(VT).wrapper
+        dest.qp = Adapt.adapt(backend_array, dest.qp)
+    end
+    return index_map
+end
+
+function MOI.optimize!(model::Optimizer)
+    options = Dict{Symbol, Any}(
+        Symbol(key) => model.options[key] for key in keys(model.options) if key != "solver"
+    )
+    if model.silent
+        options[:print_level] = MadCore.ERROR
+    else
+        options[:print_level] = MadCore.INFO
+    end
+    model.solver = MadIPM.MPCSolver(model.qp; options...)
+    model.stats = MadIPM.solve!(model.solver)
+    return
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.SolveTimeSec)
+    return optimizer.stats.counters.total_time
+end
+
+function MOI.get(optimizer::Optimizer, ::MOI.RawStatusString)
+    return string(optimizer.stats.status)
+end
+
+struct RawStatus <: MOI.AbstractModelAttribute
+    name::Symbol
+end
+
+MOI.is_set_by_optimize(::RawStatus) = true
+
+function MOI.get(optimizer::Optimizer, attr::RawStatus)
+    return getfield(optimizer.stats, attr.name)
+end
+
+const TERMINATION_STATUS = Dict{MadCore.Status,MOI.TerminationStatusCode}(
+    MadCore.SOLVE_SUCCEEDED => MOI.OPTIMAL,
+    MadCore.SOLVED_TO_ACCEPTABLE_LEVEL => MOI.ALMOST_OPTIMAL,
+    MadCore.SEARCH_DIRECTION_BECOMES_TOO_SMALL => MOI.SLOW_PROGRESS,
+    MadCore.DIVERGING_ITERATES => MOI.INFEASIBLE_OR_UNBOUNDED,
+    MadCore.INFEASIBLE_PROBLEM_DETECTED => MOI.INFEASIBLE,
+    MadCore.UNBOUNDED_PROBLEM_DETECTED => MOI.DUAL_INFEASIBLE,
+    MadCore.MAXIMUM_ITERATIONS_EXCEEDED => MOI.ITERATION_LIMIT,
+    MadCore.MAXIMUM_WALLTIME_EXCEEDED => MOI.TIME_LIMIT,
+    MadCore.INITIAL => MOI.OPTIMIZE_NOT_CALLED,
+    MadCore.RESTORATION_FAILED => MOI.NUMERICAL_ERROR,
+    MadCore.INVALID_NUMBER_DETECTED => MOI.INVALID_MODEL,
+    MadCore.ERROR_IN_STEP_COMPUTATION => MOI.NUMERICAL_ERROR,
+    MadCore.NOT_ENOUGH_DEGREES_OF_FREEDOM => MOI.INVALID_MODEL,
+    MadCore.USER_REQUESTED_STOP => MOI.INTERRUPTED,
+    MadCore.INTERNAL_ERROR => MOI.OTHER_ERROR,
+    MadCore.INVALID_NUMBER_OBJECTIVE => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_GRADIENT => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_CONSTRAINTS => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_JACOBIAN => MOI.INVALID_MODEL,
+    MadCore.INVALID_NUMBER_HESSIAN_LAGRANGIAN => MOI.INVALID_MODEL,
+)
+
+function MOI.get(optimizer::Optimizer, ::MOI.TerminationStatus)
+    if isnothing(optimizer.stats)
+        return MOI.OPTIMIZE_NOT_CALLED
+    end
+    return TERMINATION_STATUS[optimizer.stats.status]
+end
+
+# When MadIPM detects an unbounded LP, the primal result is a certificate of dual
+# infeasibility: a ray d with A d in the recession cone of the constraints and c'd < 0 (> 0 when
+# maximizing). The iterates grow along it, so it is the final iterate normalized, and the
+# objective and constraint values are those of the linear part at d (no constant term).
+_has_ray(model::Optimizer) =
+    !isnothing(model.stats) && model.stats.status == MadCore.UNBOUNDED_PROBLEM_DETECTED
+_ray_scale(model::Optimizer) =
+    _has_ray(model) ? max(maximum(abs, model.stats.solution; init = 0.0), floatmin(Float64)) : 1.0
+
+function MOI.get(optimizer::Optimizer, attr::MOI.ObjectiveValue)
+    MOI.check_result_index_bounds(optimizer, attr)
+    if _has_ray(optimizer)
+        # For an unbounded problem, MOI wants the objective of the ray d, which is
+        # cᵀd without the constant term. The ray is d = x / scale (see `_ray_scale`),
+        # so cᵀd = (cᵀx + c0 - c0) / scale. c0 is on the device for a GPU model.
+        c0 = Array(optimizer.qp.data.c0)[1]
+        return (optimizer.stats.objective - c0) / _ray_scale(optimizer)
+    end
+    return optimizer.stats.objective
+end
+
+function MOI.get(optimizer::Optimizer, attr::MOI.PrimalStatus)
+    if attr.result_index > MOI.get(optimizer, MOI.ResultCount())
+        return MOI.NO_SOLUTION
+    elseif MOI.get(optimizer, MOI.TerminationStatus()) == MOI.OPTIMAL
+        return MOI.FEASIBLE_POINT
+    elseif MOI.get(optimizer, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        return MOI.INFEASIBLE_POINT
+    elseif _has_ray(optimizer)
+        return MOI.INFEASIBILITY_CERTIFICATE
+    end
+    return MOI.NO_SOLUTION
+end
+
+function MOI.get(model::Optimizer, attr::MOI.DualStatus)
+    if attr.result_index > MOI.get(model, MOI.ResultCount())
+        return MOI.NO_SOLUTION
+    elseif MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+        return MOI.FEASIBLE_POINT
+    elseif MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        return MOI.INFEASIBLE_POINT
+    end
+    return MOI.NO_SOLUTION
+end
+
+function MOI.get(optimizer::Optimizer, attr::MOI.VariablePrimal, vi::MOI.VariableIndex)
+    MOI.check_result_index_bounds(optimizer, attr)
+    # For an unbounded problem the result is the ray d = x / scale, not the iterate x:
+    # x has diverged (its entries can be huge), and only its direction is meaningful.
+    # Otherwise the scale is 1.
+    return optimizer.stats.solution[vi.value] / _ray_scale(optimizer)
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintPrimal,
+    c::MOI.ConstraintIndex{MOI.VariableIndex,<:_SCALAR_SETS},
+)
+    MOI.check_result_index_bounds(model, attr)
+    return MOI.get(model, MOI.VariablePrimal(), MOI.VariableIndex(c.value))
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintPrimal,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:_SCALAR_SETS},
+)
+    MOI.check_result_index_bounds(model, attr)
+    # The constraint value at the ray d = x / scale, i.e. aᵀd (see VariablePrimal).
+    # The constraints are linear, so aᵀd = (aᵀx) / scale. Otherwise the scale is 1.
+    return model.stats.constraints[c.value+1] / _ray_scale(model)
+end
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.VariableIndex,S},
+) where {S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    col = c.value
+    dual = if S <: MOI.LessThan
+        -model.stats.multipliers_U[col]
+    elseif S <: MOI.GreaterThan
+        model.stats.multipliers_L[col]
+    else
+        model.stats.multipliers_L[col] - model.stats.multipliers_U[col]
+    end
+    # The bound multipliers of a maximization problem have the sign of the
+    # constraint multipliers, which is opposite to the MOI convention.
+    return _dual_multiplier(model) * dual
+end
+
+_dual_multiplier(model::Optimizer) = model.qp.meta.minimize ? 1.0 : -1.0
+
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},S},
+) where {S<:_SCALAR_SETS}
+    MOI.check_result_index_bounds(model, attr)
+    s = -_dual_multiplier(model)
+    return s * model.stats.multipliers[c.value+1]
+end
+
+MOI.get(optimizer::Optimizer, ::MOI.ResultCount) = 1

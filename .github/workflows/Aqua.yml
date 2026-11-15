@@ -15,6 +15,6 @@ jobs:
           version: '1'
       - name: Aqua.jl
         run: |
-          PKG_SRC_PATH=`pwd`
-          PKG_SRC_NAME=`basename -s ".jl" $PKG_SRC_PATH`
-          julia --color=yes -e "using Pkg; Pkg.add(\"Aqua\"); Pkg.develop(path=\"$PKG_SRC_PATH\"); using Aqua, $PKG_SRC_NAME; Aqua.test_all($PKG_SRC_NAME, piracies=false)"
+          for pkg in MadIPMCore MadIPM; do
+            julia --color=yes -e "using Pkg; Pkg.activate(temp=true); Pkg.add(\"Aqua\"); Pkg.develop(path=\"./MadIPMCore\"); Pkg.develop(path=\"./$pkg\"); using Aqua, $pkg; Aqua.test_all($pkg, piracies=false)"
+          done
