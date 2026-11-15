@@ -183,6 +183,9 @@ _ray_scale(model::Optimizer) =
 function MOI.get(optimizer::Optimizer, attr::MOI.ObjectiveValue)
     MOI.check_result_index_bounds(optimizer, attr)
     if _has_ray(optimizer)
+        # For an unbounded problem, MOI wants the objective of the ray d, which is
+        # cᵀd without the constant term. The ray is d = x / scale (see `_ray_scale`),
+        # so cᵀd = (cᵀx + c0 - c0) / scale. c0 is on the device for a GPU model.
         c0 = Array(optimizer.qp.data.c0)[1]
         return (optimizer.stats.objective - c0) / _ray_scale(optimizer)
     end
@@ -215,6 +218,9 @@ end
 
 function MOI.get(optimizer::Optimizer, attr::MOI.VariablePrimal, vi::MOI.VariableIndex)
     MOI.check_result_index_bounds(optimizer, attr)
+    # For an unbounded problem the result is the ray d = x / scale, not the iterate x:
+    # x has diverged (its entries can be huge), and only its direction is meaningful.
+    # Otherwise the scale is 1.
     return optimizer.stats.solution[vi.value] / _ray_scale(optimizer)
 end
 
@@ -233,6 +239,8 @@ function MOI.get(
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:_SCALAR_SETS},
 )
     MOI.check_result_index_bounds(model, attr)
+    # The constraint value at the ray d = x / scale, i.e. aᵀd (see VariablePrimal).
+    # The constraints are linear, so aᵀd = (aᵀx) / scale. Otherwise the scale is 1.
     return model.stats.constraints[c.value+1] / _ray_scale(model)
 end
 
