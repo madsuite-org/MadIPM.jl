@@ -129,6 +129,11 @@ function CUDSSSolver(
     )
     solver = CUDSSSolver(batch_aug_com; opt=opt)
     solver.tril.nzVal = batch_nzVal
+    # cuDSS 1.0 returns NOT_SUPPORTED when ubatch_size changes after the
+    # analysis, so the converged instances are skipped with ubatch_mask. The
+    # mask must be set before the first factorization, with ubatch_size entries.
+    nb = solver.inner.matrix.nbatch
+    nb > 1 && CUDSS.cudss_set(solver.inner, "ubatch_mask", ones(Cint, nb))
     return solver
 end
 
@@ -136,17 +141,18 @@ MadIPM.is_factorized(::CUDSSSolver) = true
 
 function MadIPM.factorize_active!(s::CUDSSSolver, active::MadIPM.BatchView)
     na = MadIPM.local_batch_size(active)
-    CUDSS.cudss_set(s.inner, "ubatch_size", na)
+    nb = s.inner.matrix.nbatch
+    # the active instances are compacted into the first na slots
+    nb > 1 && CUDSS.cudss_set(s.inner, "ubatch_mask", Cint[i <= na for i in 1:nb])
     MadNLP.factorize!(s)
     return
 end
 
 function MadIPM.solve_active!(s::CUDSSSolver{T}, rhs::CuMatrix{T}, active::MadIPM.BatchView) where T
-    na = MadIPM.local_batch_size(active)
-    n = size(rhs, 1)
-    rhs_active = unsafe_wrap(CuArray{T, 2}, pointer(rhs), (n, na))
-    CUDSS.cudss_update(s.b_gpu, rhs_active)
-    CUDSS.cudss_update(s.x_gpu, rhs_active)
+    # solve over the whole batch: ubatch_mask (set in factorize_active!)
+    # leaves the columns of the inactive instances unchanged
+    CUDSS.cudss_update(s.b_gpu, rhs)
+    CUDSS.cudss_update(s.x_gpu, rhs)
     CUDSS.cudss("solve", s.inner, s.x_gpu, s.b_gpu, asynchronous=s.opt.cudss_asynchronous)
     return
 end
