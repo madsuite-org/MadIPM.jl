@@ -234,7 +234,8 @@ function MOI.get(
     else
         model.stats.multipliers_L[col] - model.stats.multipliers_U[col]
     end
-    return dual
+    # MadNLP 0.11 returns bound multipliers with the sign of the objective sense
+    return _dual_multiplier(model) * dual
 end
 
 _dual_multiplier(model::Optimizer) = model.qp.meta.minimize ? 1.0 : -1.0
