@@ -42,10 +42,10 @@ function MadNLP.initialize!(
     copyto!(bx_buffer, x_full)
     MadNLP._eval_cons_wrapper!(bcb, bx_buffer, bcb.con_buffer)
 
-    MadNLP.slack(xl) .= view(lcon, ind_ineq, :)
-    MadNLP.slack(xu) .= view(ucon, ind_ineq, :)
+    MadNLP.slack(xl) .= @inbounds(view(lcon, ind_ineq, :))
+    MadNLP.slack(xu) .= @inbounds(view(ucon, ind_ineq, :))
     MadNLP._treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
-    copyto!(MadNLP.slack(x), view(bcb.con_buffer, ind_ineq, :))
+    copyto!(MadNLP.slack(x), @inbounds(view(bcb.con_buffer, ind_ineq, :)))
 
     MadNLP.set_initial_bounds!(MadNLP.slack(xl), MadNLP.slack(xu), tol)
     MadNLP.slack(x) .= MadNLP._initialize_variables!.(
@@ -125,7 +125,7 @@ function MadNLP.set_scaling!(
     MadNLP._eval_grad_f_wrapper!(cb, bx_buffer, cb.grad_buffer)
     MadNLP.set_obj_scale!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
 
-    con_scale_slk = @view(cb.con_scale[ind_ineq, :])
+    con_scale_slk = @inbounds(view(cb.con_scale, ind_ineq, :))
     y ./= cb.con_scale
     rhs .*= cb.con_scale
     MadNLP.slack(x) .*= con_scale_slk
