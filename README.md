@@ -14,6 +14,14 @@ pkg> add MadIPM
 pkg> test MadIPM
 ```
 
+The repository holds three packages, like MadNLP.jl:
+
+| Package | What it is |
+|---|---|
+| `MadIPM` | MadIPM on the CPU, with the CPU linear solvers of MadNLP (MUMPS by default) and the JuMP/MathOptInterface interface |
+| `cuMadIPM` | MadIPM on NVIDIA GPUs, with cuDSS by default |
+| `MadIPMCore` | The algorithm alone, for packages built on MadIPM; it loads no linear solver |
+
 ## Basic usage
 
 ### JuMP
@@ -24,7 +32,6 @@ For instance, you can solve any LP formulated with JuMP by using:
 ```julia
 using JuMP
 using MadIPM
-using MadNLP  # provides the default sparse linear solver (MUMPS)
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
@@ -42,14 +49,13 @@ We detail here how to solve a LP stored in a MPS file `mylp.mps` using [QPSReade
 using QPSReader
 using QuadraticModels
 using MadIPM
-using MadNLP
 
 qpdat = readqps("mylp.mps")
 qp = QuadraticModel(qpdat)
 results = madipm(qp)
 ```
 
-MadIPM depends on MadCore, which has no default sparse linear solver. Load MadNLP, as above, or pass the option `linear_solver` (for example `linear_solver = MadCore.LDLSolver` after `import MadCore`; MadIPM always loads LDLFactorizations).
+MadIPM uses MUMPS by default; pass the option `linear_solver` to use another solver, for example `linear_solver = MadCore.LDLSolver` after `import MadCore`.
 
 ### Custom usage
 
@@ -65,21 +71,18 @@ results = MadIPM.solve!(solver)
 
 ## Solving a LP with CUDA
 
-MadIPM supports GPU acceleration using NVIDIA cuDSS.
+MadIPM runs on NVIDIA GPUs with the package `cuMadIPM`, which uses NVIDIA cuDSS by default.
 It requires specifying your problem in a `QuadraticProblem` first.
 
 The data are moved to the GPU using:
 ```julia
-using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
-using MadIPM
+using cuMadIPM, CUDA
 
 qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
 ```
-Then, you can pass the problem `qp_gpu` to MadIPM by switching
-the linear solver to NVIDIA cuDSS:
+Then, you can pass the problem `qp_gpu` to MadIPM; models on the GPU use cuDSS:
 ```julia
-solver = MPCSolver(qp_gpu; linear_solver=MadCoreGPU.CUDSSSolver)
-results = MadIPM.solve!(solver)
+results = madipm(qp_gpu)
 ```
 As a result, all the solution happens on the GPU, with minimum data transfer
 between the host and the device.
@@ -87,13 +90,12 @@ between the host and the device.
 If you have a JUMP model, just set the array type for CUDA arrays:
 ```julia
 using JuMP
-using MadIPM
-using CUDA, CUDSS, KernelAbstractions, MadCoreGPU
+using MadIPM, cuMadIPM, CUDA
 
 c = rand(10)
 model = Model(MadIPM.Optimizer)
 set_optimizer_attribute(model, "array_type", CuVector{Float64})
-set_optimizer_attribute(model, "linear_solver", MadCoreGPU.CUDSSSolver)
+set_optimizer_attribute(model, "linear_solver", cuMadIPM.CUDSSSolver)
 
 @variable(model, 0 <= x[1:10], start=0.5)
 @constraint(model, sum(x) == 1.0)

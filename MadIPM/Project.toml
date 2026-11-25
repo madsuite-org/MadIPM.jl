@@ -1,0 +1,42 @@
+name = "MadIPM"
+uuid = "4406d55e-1099-4ca6-ac6a-6cf051b10024"
+version = "0.3.0"
+authors = ["François Pacaud <francoispacaud8@gmail.com>", "Alexis Montoison <amontoison@anl.gov>"]
+
+[deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+HSL = "34c5aeac-e683-54a6-a0e9-6e0fdc586c50"
+Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
+LDLFactorizations = "40e66cde-538c-5869-a4ad-c39174c6795b"
+MUMPS_seq_jll = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
+MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
+MadIPMCore = "cce603d1-82cb-4059-8043-76fdfb6af000"
+NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
+OpenBLAS32_jll = "656ef2d0-ae68-5445-9ca0-591084a874a2"
+SparseMatricesCOO = "fa32481b-f100-4b48-8dc8-c62f61b13870"
+SuiteSparse = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
+
+[weakdeps]
+MathOptInterface = "b8f27783-ece8-5eb3-8dc8-9495eed66fee"
+
+[extensions]
+MadIPMMOI = "MathOptInterface"
+
+[sources]
+MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
+MadIPMCore = {path = "../MadIPMCore"}
+
+[compat]
+Adapt = "4"
+HSL = "0.5.3"
+Krylov = "0.10"
+LDLFactorizations = "0.10.1"
+MUMPS_seq_jll = "~500.900"
+MadCore = "0.12"
+MadIPMCore = "=0.3.0"
+MathOptInterface = "1.48"
+NLPModels = "0.21.12"
+OpenBLAS32_jll = "0.3"
+SparseMatricesCOO = "0.2.4"
+SuiteSparse = "1.10"
+julia = "1.10"
