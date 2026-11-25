@@ -228,7 +228,7 @@ function MadCore.solve_kkt!(kkt::NormalKKTSystem, w::MadCore.AbstractKKTVector)
     return w
 end
 
-function MadCore.mul!(
+function LinearAlgebra.mul!(
     w::MadCore.AbstractKKTVector{T},
     kkt::NormalKKTSystem,
     v::MadCore.AbstractKKTVector,

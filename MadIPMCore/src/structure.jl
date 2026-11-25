@@ -162,7 +162,7 @@ function MPCSolver(nlp::NLPModels.AbstractNLPModel{T,VT}; kwargs...) where {T,VT
 
     cnt.init_time = time() - cnt.start_time
 
-    nnzh = MadCore.get_nnzh(nlp)
+    nnzh = NLPModels.get_nnzh(nlp)
     # check if the problem is a LP or a QP
     class = iszero(nnzh) ? LinearProgram() : QuadraticProgram()
 

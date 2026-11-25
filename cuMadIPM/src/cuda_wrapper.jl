@@ -1,7 +1,7 @@
 import LinearAlgebra: BlasFloat
 
 function MadIPMCore._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMatrixCSC{T, Cint}; opt) where T
-    return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
+    return create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
 function MadCore.transfer!(
@@ -9,7 +9,7 @@ function MadCore.transfer!(
     src::MadCore.SparseMatrixCOO{Tv},
     map::CuVector{Int},
 ) where {Tv}
-    return MadCore.transfer_values!(dest.nzVal, src.V, map)
+    return MadCore.coo_to_csc_values!(dest.nzVal, src.V, map)
 end
 
 function MadCore.compress_hessian!(
@@ -60,7 +60,7 @@ function MadIPMCore.create_batch_linear_solver(
     batch_aug_com = CUSPARSE.CuSparseMatrixCSC(
         aug_com.colPtr, aug_com.rowVal, batch_nzVal, size(aug_com),
     )
-    solver = MadCore.create_linear_solver(CUDSSSolver, batch_aug_com; opt=opt)
+    solver = create_linear_solver(CUDSSSolver, batch_aug_com; opt=opt)
     solver.tril.nzVal = batch_nzVal
     return solver
 end

@@ -2,12 +2,13 @@
     MadIPMCoreGPUExt
 
 The GPU code of MadIPMCore that does not depend on a GPU vendor: KernelAbstractions kernels on
-`AbstractGPUArray`s, launched on the backend of their arguments. It loads with MadCoreGPU, as
-MadNLPCoreGPUExt does for MadNLPCore; the bundles (`cuMadIPM`) add the vendor-specific code.
+`AbstractGPUArray`s, launched on the backend of their arguments. It loads with the GPU
+extensions of MadCore, as MadNLPCoreGPUExt does for MadNLPCore; the bundles (`cuMadIPM`) add
+the vendor-specific code.
 """
 module MadIPMCoreGPUExt
 
-import MadCore, MadCoreGPU, MadIPMCore
+import MadCore, MadIPMCore
 import MadIPMCore: Models
 import Atomix
 import GPUArraysCore: AbstractGPUArray, AbstractGPUVector, AbstractGPUMatrix

@@ -1,6 +1,5 @@
 using Adapt
 using KernelAbstractions
-using MadCoreGPU
 using MadIPM.Models: ObjRHSBatchQuadraticModel, BatchQuadraticModel
 
 function _gpu_batch(qps; Model = ObjRHSBatchQuadraticModel, atol = 1e-6, batch_kwargs...)
@@ -15,7 +14,7 @@ function _gpu_batch(qps; Model = ObjRHSBatchQuadraticModel, atol = 1e-6, batch_k
     stats = MadIPM.madipm_batch(
         gpu_bnlp;
         print_level = MadNLP.ERROR,
-        uniformbatch_linear_solver = MadCoreGPU.CUDSSSolver,
+        uniformbatch_linear_solver = MadCore.CUDSSSolver,
         cudss_algorithm = MadNLP.LDL,
         batch_kwargs...,
     )
@@ -45,7 +44,7 @@ end
         solver = MadIPM.UniformBatchMPCSolver(
             gpu_bnlp;
             print_level = MadNLP.ERROR,
-            uniformbatch_linear_solver = MadCoreGPU.CUDSSSolver,
+            uniformbatch_linear_solver = MadCore.CUDSSSolver,
         )
         bvs = solver.batch_views
 
@@ -191,7 +190,7 @@ end
         stats = MadIPM.madipm_batch(
             gpu_bnlp;
             print_level = MadNLP.ERROR,
-            uniformbatch_linear_solver = MadCoreGPU.CUDSSSolver,
+            uniformbatch_linear_solver = MadCore.CUDSSSolver,
             cudss_algorithm = MadNLP.LDL,
             check_residual = true,
             tol_linear_solve = 0.0,

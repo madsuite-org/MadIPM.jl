@@ -13,15 +13,8 @@ using LinearAlgebra
 import SparseArrays
 import MadCore
 import MadCore: full
-# TODO(M0): MadCore names MadIPMCore uses that are not in `MadCore.public_names()`. They are
-# called qualified (`MadCore._name`); each should become public with a documented
-# signature, or stop being needed once the batch layer moves to MadCore.
-#   _parse_indexes                     batch/madnlp/callback.jl
-#   _treat_equality_initialize!        batch/madnlp/initialization.jl
-#   _treat_fixed_variable_initialize!  batch/madnlp/initialization.jl
-#   _initialize_variables!             batch/madnlp/initialization.jl
-#   _get_primary_options               utils.jl
-#   _set_aug_diagonal!                 kernels.jl
+# Internal names of MadCore (not in `MadCore.public_names()`) used by MadIPMCore.
+import MadCore: create_linear_solver, is_factorized
 import NLPModels
 import SparseMatricesCOO: SparseMatrixCOO
 
