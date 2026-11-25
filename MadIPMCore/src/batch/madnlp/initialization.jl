@@ -59,19 +59,19 @@ function MadCore.initialize!(
     return
 end
 
-function MadCore.set_con_scale_sparse!(
+function _set_con_scale_batch!(
     con_scale::MT,
     jac_I,
     jac_buffer,
     max_gradient,
 ) where {T,MT<:AbstractMatrix{T}}
     fill!(con_scale, one(T))
-    MadCore.update_con_scale_sparse!(con_scale, jac_I, jac_buffer)
+    _update_con_scale_batch!(con_scale, jac_I, jac_buffer)
     con_scale .= min.(one(T), max_gradient ./ con_scale)
     return con_scale
 end
 
-function MadCore.update_con_scale_sparse!(
+function _update_con_scale_batch!(
     con_scale::MT,
     jac_I,
     jac_buffer,
@@ -87,7 +87,7 @@ function MadCore.update_con_scale_sparse!(
     return con_scale
 end
 
-function MadCore.set_jac_scale_sparse!(
+function _set_jac_scale_batch!(
     jac_scale::MT,
     con_scale,
     jac_I,
@@ -95,7 +95,7 @@ function MadCore.set_jac_scale_sparse!(
     return copyto!(jac_scale, @view(con_scale[jac_I, :]))
 end
 
-function MadCore.set_obj_scale!(
+function _set_obj_scale_batch!(
     obj_scale,
     F::MT,
     max_gradient,
@@ -119,11 +119,11 @@ function MadCore.set_scaling!(
     copyto!(bx_buffer, x_full)
 
     jac_free = MadCore.eval_jac_callback!(cb, bx_buffer, cb.jac_buffer)
-    MadCore.set_con_scale_sparse!(cb.con_scale, cb.jac_I, jac_free, nlp_scaling_max_gradient)
-    MadCore.set_jac_scale_sparse!(cb.jac_scale, cb.con_scale, cb.jac_I)
+    _set_con_scale_batch!(cb.con_scale, cb.jac_I, jac_free, nlp_scaling_max_gradient)
+    _set_jac_scale_batch!(cb.jac_scale, cb.con_scale, cb.jac_I)
 
     MadCore.eval_grad_f_callback!(cb, bx_buffer, cb.grad_buffer)
-    MadCore.set_obj_scale!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
+    _set_obj_scale_batch!(cb.obj_scale, cb.grad_buffer, nlp_scaling_max_gradient)
 
     con_scale_slk = @view(cb.con_scale[ind_ineq, :])
     y ./= cb.con_scale

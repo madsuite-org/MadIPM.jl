@@ -11,7 +11,7 @@
     end
 end
 
-function MadCore.update_con_scale_sparse!(
+function MadIPMCore._update_con_scale_batch!(
     con_scale::AbstractGPUMatrix{T},
     jac_I::AbstractGPUVector{<:Integer},
     jac_buffer::AbstractGPUMatrix{T},

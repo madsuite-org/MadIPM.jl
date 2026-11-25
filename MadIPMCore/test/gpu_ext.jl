@@ -55,8 +55,8 @@ function test_madipmcore_gpu_ext(AT; T = Float64)
         jac_I = [1, 2, 2, 3, 1]
         jac_buffer = randn_(rng, length(jac_I), bs)
         cs = ones(T, 3, bs); cs_g = gpu(cs)
-        MadCore.update_con_scale_sparse!(cs, jac_I, jac_buffer)
-        MadCore.update_con_scale_sparse!(cs_g, gpu(jac_I), gpu(jac_buffer))
+        MadIPMCore._update_con_scale_batch!(cs, jac_I, jac_buffer)
+        MadIPMCore._update_con_scale_batch!(cs_g, gpu(jac_I), gpu(jac_buffer))
         @test Array(cs_g) == cs
     end
 
