@@ -89,8 +89,8 @@ function test_madipmcore_gpu_ext(AT; T = Float64)
     @testset "NormalKKTSystem kernels" begin
         src, map = randn_(rng, 9), [1, 3, 3, 2, 5, 1, 4, 4, 2]
         dest = zeros(T, 5); dest_g = gpu(dest)
-        MadCore.transfer_values!(dest, src, map)
-        MadCore.transfer_values!(dest_g, gpu(src), gpu(map))
+        MadCore.coo_to_csc_values!(dest, src, map)
+        MadCore.coo_to_csc_values!(dest_g, gpu(src), gpu(map))
         @test Array(dest_g) ≈ dest
 
         # C = J D Jᵀ, with Jᵀ and C in CSR (the CSC arrays of their transposes)

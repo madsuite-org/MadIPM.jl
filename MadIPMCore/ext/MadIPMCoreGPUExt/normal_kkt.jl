@@ -7,7 +7,7 @@
     end
 end
 
-function MadCore.transfer_values!(dest::AbstractGPUVector{T}, src::AbstractGPUVector{T}, map::AbstractGPUVector{Int}) where T
+function MadCore.coo_to_csc_values!(dest::AbstractGPUVector{T}, src::AbstractGPUVector{T}, map::AbstractGPUVector{Int}) where T
     fill!(dest, zero(T))
     if length(map) > 0
         backend = get_backend(dest)

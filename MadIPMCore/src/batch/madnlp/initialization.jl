@@ -26,17 +26,17 @@ function MadCore.initialize!(
     lvar = MadCore.variable(xl)
     uvar = MadCore.variable(xu)
 
-    x0 .= MadCore.get_x0(bcb)
-    lvar .= MadCore.get_lvar(bcb)
-    uvar .= MadCore.get_uvar(bcb)
-    y .= MadCore.get_y0(bcb)
-    lcon = copy(MadCore.get_lcon(bcb))
-    ucon = copy(MadCore.get_ucon(bcb))
+    x0 .= NLPModels.get_x0(bcb)
+    lvar .= NLPModels.get_lvar(bcb)
+    uvar .= NLPModels.get_uvar(bcb)
+    y .= NLPModels.get_y0(bcb)
+    lcon = copy(NLPModels.get_lcon(bcb))
+    ucon = copy(NLPModels.get_ucon(bcb))
 
-    MadCore._treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadCore.AbstractCallback. will need to be adjust for batchdensecallback
+    MadCore.treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadCore.AbstractCallback. will need to be adjust for batchdensecallback
 
     MadCore.set_initial_bounds!(lvar, uvar, tol)
-    x0 .= MadCore._initialize_variables!.(x0, lvar, uvar, bound_push, bound_fac)
+    x0 .= MadCore.initialize_variable.(x0, lvar, uvar, bound_push, bound_fac)
 
     x_full = MadCore.update_x!(bcb, x0)
     copyto!(bx_buffer, x_full)
@@ -44,11 +44,11 @@ function MadCore.initialize!(
 
     MadCore.slack(xl) .= view(lcon, ind_ineq, :)
     MadCore.slack(xu) .= view(ucon, ind_ineq, :)
-    MadCore._treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
+    MadCore.treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
     copyto!(MadCore.slack(x), view(bcb.con_buffer, ind_ineq, :))
 
     MadCore.set_initial_bounds!(MadCore.slack(xl), MadCore.slack(xu), tol)
-    MadCore.slack(x) .= MadCore._initialize_variables!.(
+    MadCore.slack(x) .= MadCore.initialize_variable.(
         MadCore.slack(x),
         MadCore.slack(xl),
         MadCore.slack(xu),

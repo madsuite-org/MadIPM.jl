@@ -9,10 +9,11 @@ Atomix = "a9b6321e-bd34-4604-b9c9-b65b8de01458"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 CUDACore = "bd0ed864-bdfe-4181-a5ed-ce625a5fdea2"
 CUDSS = "45b445bb-4962-46a0-9369-b4df9d0f772e"
+GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
+GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
-MadCoreGPU = "bc174d20-fbd0-43bd-9ba9-5b5faf23ea88"
 MadIPMCore = "cce603d1-82cb-4059-8043-76fdfb6af000"
 NLPModels = "a4795742-8479-5a88-8948-cc11e1c8c1a6"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
@@ -23,7 +24,6 @@ cuSPARSE = "b26da814-b3bc-49ef-b0ee-c816305aa060"
 
 [sources]
 MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
-MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCoreGPU"}
 MadIPMCore = {path = "../MadIPMCore"}
 
 [compat]
@@ -32,10 +32,11 @@ Atomix = "1"
 CUDA = "6"
 CUDACore = "6"
 CUDSS = "0.7, 0.8, 1"
+GPUArrays = "11.3, 12"
+GPUArraysCore = "0.2"
 KernelAbstractions = "0.9, 0.10"
 LinearAlgebra = "1.10"
 MadCore = "0.12"
-MadCoreGPU = "0.12"
 MadIPMCore = "=0.3.0"
 NLPModels = "0.21.12"
 SparseArrays = "1.10"

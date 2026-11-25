@@ -191,7 +191,7 @@ function MadCore.create_callback(
         uvar = uvar[ind_free]
     end
 
-    indexes = MadCore._parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
+    indexes = MadCore.parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
 
     return UniformBatchCallback{
         T,
