@@ -3,6 +3,7 @@ using Test
 using MathOptInterface
 using MadNLP
 using MadIPM
+import MadCore
 using MadNLPTests
 using MadIPM.Models
 import MadIPM.Models: LPData, QPData, LinearModel, QuadraticModel

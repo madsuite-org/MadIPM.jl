@@ -72,6 +72,7 @@ The data are moved to the GPU using:
 ```julia
 using CUDA, CUDSS, KernelAbstractions
 using MadIPM
+import MadCore
 
 qp_gpu = convert(QuadraticModel{Float64, CuVector{Float64}}, qp)
 ```
@@ -88,6 +89,7 @@ If you have a JUMP model, just set the array type for CUDA arrays:
 ```julia
 using JuMP
 using MadIPM
+import MadCore
 using CUDA, CUDSS, KernelAbstractions
 
 c = rand(10)
