@@ -191,7 +191,7 @@ function MadCore.create_callback(
         uvar = uvar[ind_free]
     end
 
-    indexes = MadCore._parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
+    indexes = MadCore.parse_indexes(lvar, uvar, lcon, ucon, equality_treatment)
 
     return UniformBatchCallback{
         T,
@@ -234,7 +234,7 @@ end
 
 
 
-function MadCore._jac_sparsity_wrapper!(
+function MadCore.jac_sparsity_callback!(
     bcb::UniformBatchCallback,
     I::AbstractVector,
     J::AbstractVector,
@@ -244,7 +244,7 @@ function MadCore._jac_sparsity_wrapper!(
     return
 end
 
-function MadCore._hess_sparsity_wrapper!(
+function MadCore.hess_sparsity_callback!(
     bcb::UniformBatchCallback,
     I::AbstractVector,
     J::AbstractVector,
@@ -260,6 +260,6 @@ function MadCore.build_hessian_structure(
 )
     hess_I = MadCore.create_array(bcb, Int32, bcb.nnzh)
     hess_J = MadCore.create_array(bcb, Int32, bcb.nnzh)
-    MadCore._hess_sparsity_wrapper!(bcb, hess_I, hess_J)
+    MadCore.hess_sparsity_callback!(bcb, hess_I, hess_J)
     return hess_I, hess_J
 end

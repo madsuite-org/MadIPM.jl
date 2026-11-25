@@ -1,7 +1,7 @@
 import LinearAlgebra: BlasFloat
 
 function MadIPM._build_linear_solver(::Type{CUDSSSolver}, aug_com::SparseMatrixCSC{T, Cint}; opt) where T
-    return MadCore.create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
+    return create_linear_solver(CUDSSSolver, CUSPARSE.CuSparseMatrixCSC(aug_com); opt = opt)
 end
 
 @kernel function _transfer_to_map!(dest, to_map, src)
@@ -16,10 +16,10 @@ function MadCore.transfer!(
     src::MadCore.SparseMatrixCOO{Tv},
     map::CuVector{Int},
 ) where {Tv}
-    return MadCore._transfer!(dest.nzVal, src.V, map)
+    return MadCore.coo_to_csc_values!(dest.nzVal, src.V, map)
 end
 
-function MadCore._transfer!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
+function MadCore.coo_to_csc_values!(dest::CuVector{T}, src::CuVector{T}, map::CuVector{Int}) where T
     fill!(dest, zero(T))
     if length(map) > 0
         backend = CUDABackend()
@@ -125,7 +125,7 @@ function MadIPM.create_batch_linear_solver(
     batch_aug_com = CUSPARSE.CuSparseMatrixCSC(
         aug_com.colPtr, aug_com.rowVal, batch_nzVal, size(aug_com),
     )
-    solver = MadCore.create_linear_solver(CUDSSSolver, batch_aug_com; opt=opt)
+    solver = create_linear_solver(CUDSSSolver, batch_aug_com; opt=opt)
     solver.tril.nzVal = batch_nzVal
     return solver
 end

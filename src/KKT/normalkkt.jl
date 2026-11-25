@@ -50,7 +50,7 @@ function MadCore.create_kkt_system(
     # Evaluate sparsity pattern
     jac_sparsity_I = MadCore.create_array(cb, Int32, cb.nnzj)
     jac_sparsity_J = MadCore.create_array(cb, Int32, cb.nnzj)
-    MadCore._jac_sparsity_wrapper!(cb, jac_sparsity_I, jac_sparsity_J)
+    MadCore.jac_sparsity_callback!(cb, jac_sparsity_I, jac_sparsity_J)
 
     nnzj = length(jac_sparsity_I)
     ntot = n + n_slack
@@ -78,7 +78,7 @@ function MadCore.create_kkt_system(
     # Build final COO matrix
     A_coo = MadCore.SparseMatrixCOO(m, ntot, I, J, V)
     # Get a view to build original LHS
-    jac = MadCore._madnlp_unsafe_wrap(V, nnzj, 1)
+    jac = MadCore.madnlp_unsafe_wrap(V, nnzj, 1)
 
     # Fill values with continuous range to get mapping
     A_coo.V .= 1:(nnzj+n_slack)
@@ -228,7 +228,7 @@ function MadCore.solve_kkt!(kkt::NormalKKTSystem, w::MadCore.AbstractKKTVector)
     return w
 end
 
-function MadCore.mul!(
+function LinearAlgebra.mul!(
     w::MadCore.AbstractKKTVector{T},
     kkt::NormalKKTSystem,
     v::MadCore.AbstractKKTVector,
@@ -244,7 +244,7 @@ function MadCore.mul!(
     mul!(wx, kkt.AT, vy, alpha, beta)
     mul!(wy, kkt.AT', vx, alpha, beta)
 
-    MadCore._kktmul!(
+    MadCore.kktmul!(
         w,
         v,
         kkt.reg,

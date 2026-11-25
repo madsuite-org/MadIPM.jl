@@ -1,11 +1,11 @@
-function MadCore._update_x!(
+function MadCore.update_x!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     x,
 ) where {T,VT,MT,VI,BM,FH,EH}
     return x
 end
 
-function MadCore._update_x!(
+function MadCore.update_x!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     x,
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
@@ -53,34 +53,34 @@ function MadCore.unpack_z!(
     Z_full[bcb.fixed_handler.free, :] .= z_free ./ bcb.obj_scale
 end
 
-function MadCore.get_x0(
+function NLPModels.get_x0(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.x0, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_y0(bcb::UniformBatchCallback) = bcb.nlp.meta.y0
+NLPModels.get_y0(bcb::UniformBatchCallback) = bcb.nlp.meta.y0
 
-MadCore.get_lvar(
+NLPModels.get_lvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH,EH} = bcb.nlp.meta.lvar
-function MadCore.get_lvar(
+function NLPModels.get_lvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.lvar, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_uvar(
+NLPModels.get_uvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH,EH} = bcb.nlp.meta.uvar
-function MadCore.get_uvar(
+function NLPModels.get_uvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.uvar, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_lcon(bcb::UniformBatchCallback) = bcb.nlp.meta.lcon
-MadCore.get_ucon(bcb::UniformBatchCallback) = bcb.nlp.meta.ucon
+NLPModels.get_lcon(bcb::UniformBatchCallback) = bcb.nlp.meta.lcon
+NLPModels.get_ucon(bcb::UniformBatchCallback) = bcb.nlp.meta.ucon
 
 function MadCore.unpack_y!(y_full, bcb::UniformBatchCallback, y)
     @. y_full = y * bcb.con_scale * bcb.obj_sign / bcb.obj_scale
@@ -98,7 +98,7 @@ function MadCore.unpack_cons!(c_full, bcb::UniformBatchCallback, c, rhs, ind_ine
     end
 end
 
-function MadCore._eval_f_wrapper(
+function MadCore.eval_f_callback(
     bcb::UniformBatchCallback,
     bx::AbstractMatrix,
     bf::AbstractVector,
@@ -108,7 +108,7 @@ function MadCore._eval_f_wrapper(
     return bf
 end
 
-function MadCore._eval_cons_wrapper!(
+function MadCore.eval_cons_callback!(
     bcb::UniformBatchCallback,
     bx::AbstractMatrix,
     bc_mat::AbstractMatrix,
@@ -118,7 +118,7 @@ function MadCore._eval_cons_wrapper!(
     return bc_mat
 end
 
-function MadCore._eval_grad_f_wrapper!(
+function MadCore.eval_grad_f_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     bg::AbstractMatrix,
@@ -128,7 +128,7 @@ function MadCore._eval_grad_f_wrapper!(
     return bg
 end
 
-function MadCore._eval_grad_f_wrapper!(
+function MadCore.eval_grad_f_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     bg::AbstractMatrix,
@@ -142,7 +142,7 @@ function MadCore._eval_grad_f_wrapper!(
     return bg
 end
 
-function MadCore._eval_jac_wrapper!(
+function MadCore.eval_jac_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     jac_buffer::AbstractMatrix,
@@ -152,7 +152,7 @@ function MadCore._eval_jac_wrapper!(
     return jac_buffer
 end
 
-function MadCore._eval_jac_wrapper!(
+function MadCore.eval_jac_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     jac_buffer::AbstractMatrix,
@@ -163,7 +163,7 @@ function MadCore._eval_jac_wrapper!(
     return jac_free
 end
 
-function MadCore._eval_lag_hess_wrapper!(
+function MadCore.eval_lag_hess_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     y_mat::AbstractMatrix,
@@ -176,7 +176,7 @@ function MadCore._eval_lag_hess_wrapper!(
     return
 end
 
-function MadCore._eval_lag_hess_wrapper!(
+function MadCore.eval_lag_hess_callback!(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
     bx::AbstractMatrix,
     y_mat::AbstractMatrix,
@@ -196,7 +196,7 @@ function MadCore.eval_f_wrapper(solver::AbstractBatchMPCSolver, bx::AbstractMatr
     bcnt = solver.batch_cnt
 
     t = @elapsed begin
-        MadCore._eval_f_wrapper(bcb, bx, ws.bf)
+        MadCore.eval_f_callback(bcb, bx, ws.bf)
         ws.bf .*= vec(bcb.obj_sign)
         vec(ws.obj_val) .= ws.bf
     end
@@ -213,7 +213,7 @@ function MadCore.eval_cons_wrapper!(solver::AbstractBatchMPCSolver, bx::Abstract
     ns = length(ind_ineq)
 
     t = @elapsed begin
-        MadCore._eval_cons_wrapper!(bcb, bx, MadCore.full(solver.c))
+        MadCore.eval_cons_callback!(bcb, bx, MadCore.full(solver.c))
         if ns > 0
             view(MadCore.full(solver.c), ind_ineq, :) .-= MadCore.slack(solver.x)
         end
@@ -231,7 +231,7 @@ function MadCore.eval_grad_f_wrapper!(solver::AbstractBatchMPCSolver, bx::Abstra
     nvar = bcb.nvar
 
     t = @elapsed begin
-        MadCore._eval_grad_f_wrapper!(bcb, bx, ws.bg)
+        MadCore.eval_grad_f_callback!(bcb, bx, ws.bg)
         BG = view(ws.bg, 1:nvar, :)
         BG .*= bcb.obj_sign
         copyto!(MadCore.variable(solver.f), BG)

@@ -109,7 +109,7 @@ function IPMOptions(
 end
 
 function load_options(nlp; options...)
-    primary_opt, options = MadCore._get_primary_options(options)
+    primary_opt, options = MadCore.get_primary_options(options)
 
     # Initiate interior-point options
     opt_ipm = IPMOptions(nlp; primary_opt...)
@@ -499,7 +499,7 @@ end
 
 # Build the linear solver `linear_solver` for the matrix `A`. The CUDA extension adds a
 # method that moves a host matrix to the device for cuDSS.
-_build_linear_solver(linear_solver, A; opt) = MadCore.create_linear_solver(linear_solver, A; opt = opt)
+_build_linear_solver(linear_solver, A; opt) = create_linear_solver(linear_solver, A; opt = opt)
 
 """
     create_batch_linear_solver(linear_solver::Type, aug_com, nzvals_mat, n; opt)

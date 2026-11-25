@@ -5,6 +5,8 @@ using LinearAlgebra
 import SparseArrays
 import MadCore
 import MadCore: full
+# Internal names of MadCore (not in `MadCore.public_names()`) used by MadIPM.
+import MadCore: create_linear_solver, is_factorized
 import LDLFactorizations
 import NLPModels
 import SparseMatricesCOO: SparseMatrixCOO
