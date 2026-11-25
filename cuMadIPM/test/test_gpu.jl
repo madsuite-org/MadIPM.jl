@@ -1,0 +1,26 @@
+using Adapt
+using KernelAbstractions
+using CUDSS
+
+@testset "MadIPMCUDA" begin
+    qp = simple_lp()
+    # Move problem to the GPU
+    qp_gpu = Adapt.adapt(CuArray, qp)
+
+    for (kkt, algo) in (
+        (MadNLP.ScaledSparseKKTSystem, MadNLP.LDL),
+        (MadNLP.SparseKKTSystem, MadNLP.LDL),
+        (MadIPM.NormalKKTSystem, MadNLP.CHOLESKY),
+    )
+        solver = MadIPM.MPCSolver(
+            qp_gpu;
+            kkt_system = kkt,
+            linear_solver = MadCore.CUDSSSolver,
+            cudss_algorithm = algo,
+            print_level = MadNLP.ERROR,
+        )
+        results = MadIPM.solve!(solver)
+        @test results.status == MadNLP.SOLVE_SUCCEEDED
+        @test results.objective ≈ 1.0
+    end
+end
