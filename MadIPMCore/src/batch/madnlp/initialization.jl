@@ -1,4 +1,4 @@
-function MadCore.set_initial_bounds!(
+function _set_initial_bounds_batch!(
     xl::AbstractMatrix{T},
     xu::AbstractMatrix{T},
     tol,
@@ -35,7 +35,7 @@ function MadCore.initialize!(
 
     MadCore.treat_fixed_variable_initialize!(bcb, x0, lvar, uvar)  # this is no-op, recall bcb <: MadCore.AbstractCallback. will need to be adjust for batchdensecallback
 
-    MadCore.set_initial_bounds!(lvar, uvar, tol)
+    _set_initial_bounds_batch!(lvar, uvar, tol)
     x0 .= MadCore.initialize_variable.(x0, lvar, uvar, bound_push, bound_fac)
 
     x_full = MadCore.update_x!(bcb, x0)
@@ -47,7 +47,7 @@ function MadCore.initialize!(
     MadCore.treat_equality_initialize!(bcb.equality_handler, rhs, lcon, ucon)
     copyto!(MadCore.slack(x), view(bcb.con_buffer, ind_ineq, :))
 
-    MadCore.set_initial_bounds!(MadCore.slack(xl), MadCore.slack(xu), tol)
+    _set_initial_bounds_batch!(MadCore.slack(xl), MadCore.slack(xu), tol)
     MadCore.slack(x) .= MadCore.initialize_variable.(
         MadCore.slack(x),
         MadCore.slack(xl),

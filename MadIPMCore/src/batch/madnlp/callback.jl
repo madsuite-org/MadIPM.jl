@@ -45,7 +45,7 @@ struct UniformBatchCallback{
     ind_uub::VI
 end
 
-function MadCore.create_sparse_fixed_handler(
+function _create_batch_fixed_handler(
     ::Type{MadCore.MakeParameter},
     bnlp::NLPModels.AbstractBatchNLPModel{T},
     jac_I,
@@ -166,7 +166,7 @@ function MadCore.create_callback(
     lcon = view(bmeta.lcon, :, 1)
     ucon = view(bmeta.ucon, :, 1)
 
-    fixed_handler, nvar, nnzj, nnzh = MadCore.create_sparse_fixed_handler(
+    fixed_handler, nvar, nnzj, nnzh = _create_batch_fixed_handler(
         fixed_variable_treatment,
         bnlp,
         jac_I,
