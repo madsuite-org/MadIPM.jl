@@ -31,7 +31,6 @@ MUMPS_seq_jll = "d7ed1dd3-d0ae-5e8e-bfb4-87a502085b8d"
 MadIPM = "4406d55e-1099-4ca6-ac6a-6cf051b10024"
 MadNLP = "2621e9c9-9eb4-46b1-8089-e8c72242dfb6"
 MadCore = "a65213e2-99b2-4dc2-8349-7a266ca2b67f"
-MadCoreGPU = "bc174d20-fbd0-43bd-9ba9-5b5faf23ea88"
 MadNLPCore = "38486723-7c71-48b9-ad12-dc22a86097e8"
 MadNLPTests = "b52a2a03-04ab-4a5f-9698-6a2deff93217"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
@@ -73,7 +72,6 @@ MadNLP = "0.12"
 [sources]
 MadIPM = {path = ".."}
 MadCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCore"}
-MadCoreGPU = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadCoreGPU"}
 MadNLPCore = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPCore"}
 MadNLP = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLP"}
 MadNLPTests = {url = "https://github.com/madsuite-org/MadNLP.jl", rev = "madcore-public-api", subdir = "MadNLPTests"}

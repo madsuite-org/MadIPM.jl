@@ -12,7 +12,7 @@ import Atomix
 import SparseMatricesCOO: SparseMatrixCOO
 import LinearAlgebra: BlasFloat, Symmetric, Transpose, mul!, tril
 import MadCore
-import MadCoreGPU
+import MadCore: create_linear_solver  # internal
 import MadIPM
 
 import MadIPM: Models
@@ -29,9 +29,9 @@ import MadIPM.Models:
     _build_op,
     _adapt_batch_meta
 
-# The cuDSS solver is implemented in the extension MadCoreGPUCUDSSExt and built with
-# `MadCore.create_linear_solver(CUDSSSolver, A)`.
-const CUDSSSolver = MadCoreGPU.CUDSSSolver
+# The cuDSS solver is implemented in the extension MadCoreCUDSSExt of MadCore and built with
+# `create_linear_solver(CUDSSSolver, A)`.
+const CUDSSSolver = MadCore.CUDSSSolver
 
 include("models/sparse_operator.jl")
 include("models/scalar_models.jl")

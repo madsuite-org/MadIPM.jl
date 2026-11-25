@@ -276,7 +276,7 @@ function MadCore.solve_kkt!(
 end
 
 function MadCore.build_kkt!(bkkt::SparseUniformBatchKKTSystem)
-    MadCore.transfer_values!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
+    MadCore.coo_to_csc_values!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
     return
 end
 

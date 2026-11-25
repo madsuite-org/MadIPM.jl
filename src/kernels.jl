@@ -173,7 +173,7 @@ function set_aug_diagonal_reg!(
     copyto!(kkt.l_lower, solver.zl_r)
     copyto!(kkt.u_lower, solver.zu_r)
 
-    MadCore._set_aug_diagonal!(kkt)
+    MadCore.set_aug_diagonal!(kkt)
     return
 end
 

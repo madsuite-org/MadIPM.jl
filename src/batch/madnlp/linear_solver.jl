@@ -41,7 +41,7 @@ function is_factorized!(
 )
     nfailed = 0
     @inbounds for j = 1:factor_view.n
-        if !MadCore.is_factorized(batch_linear_solver.solvers[j])
+        if !is_factorized(batch_linear_solver.solvers[j])
             nfailed += 1
             failed_local_buffer[nfailed] = j
         end
