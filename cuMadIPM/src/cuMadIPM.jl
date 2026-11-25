@@ -2,7 +2,7 @@
     cuMadIPM
 
 MadIPM on NVIDIA GPUs: MadIPMCore with the CUDA sparse operators and kernels of MadIPM and the
-GPU linear solvers of MadCoreGPU (cuDSS, cuSOLVER). Models on `CuVector` use cuDSS by default.
+GPU linear solvers of MadCore (cuDSS, cuSOLVER). Models on `CuVector` use cuDSS by default.
 """
 module cuMadIPM
 
@@ -18,7 +18,7 @@ import Atomix
 import SparseMatricesCOO: SparseMatrixCOO
 import LinearAlgebra: BlasFloat, Symmetric, Transpose, mul!, tril
 import MadCore
-import MadCoreGPU
+import MadCore: create_linear_solver  # internal
 import MadIPMCore
 
 import MadIPMCore: Models
@@ -35,9 +35,9 @@ import MadIPMCore.Models:
     _build_op,
     _adapt_batch_meta
 
-# The cuDSS solver is implemented in the extension MadCoreGPUCUDSSExt and built with
-# `MadCore.create_linear_solver(CUDSSSolver, A)`.
-const CUDSSSolver = MadCoreGPU.CUDSSSolver
+# The cuDSS solver is implemented in the extension MadCoreCUDSSExt of MadCore and built with
+# `create_linear_solver(CUDSSSolver, A)`.
+const CUDSSSolver = MadCore.CUDSSSolver
 
 # cuMadIPM exports what MadIPMCore exports, and the GPU linear solvers.
 using MadIPMCore
@@ -45,7 +45,7 @@ for name in names(MadIPMCore)
     name === :MadIPMCore && continue
     @eval export $name
 end
-using MadCoreGPU: LapackCUDASolver
+using MadCore: LapackCUDASolver
 export CUDSSSolver, LapackCUDASolver
 
 # cuDSS is the default sparse linear solver for models on the GPU, as in cuMadNLP.

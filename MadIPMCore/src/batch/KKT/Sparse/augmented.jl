@@ -275,12 +275,8 @@ function MadCore.solve_kkt!(
     return
 end
 
-# Scatter the COO values of all instances into the CSC nonzeros, summing duplicates, as
-# `MadCore.transfer!` does for one matrix. MadIPMCoreGPUExt adds the GPU method.
-_transfer_coo_to_csc!(nzval, V, cscmap) = MadCore.transfer_values!(nzval, V, cscmap)
-
 function MadCore.build_kkt!(bkkt::SparseUniformBatchKKTSystem)
-    _transfer_coo_to_csc!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
+    MadCore.coo_to_csc_values!(vec(bkkt.aug_com_nzvals), vec(bkkt.nzVals), bkkt.batch_csc_map)
     return
 end
 

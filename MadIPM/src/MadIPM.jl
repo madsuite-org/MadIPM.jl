@@ -8,12 +8,13 @@ linear solver. Loading MathOptInterface adds `MadIPM.Optimizer`.
 module MadIPM
 
 import MadCore, MadIPMCore
+import MadCore: defined_names  # internal
 import NLPModels
 import HSL, Krylov, LDLFactorizations, MUMPS_seq_jll, OpenBLAS32_jll, SuiteSparse
 
 # MadIPM bundles MadIPMCore with the CPU linear solvers. Every name of MadIPMCore also
 # resolves as `MadIPM.name`, as before the split.
-for name in MadCore.defined_names(MadIPMCore)
+for name in defined_names(MadIPMCore)
     name === :MadCore && continue
     @eval import MadIPMCore: $name
 end

@@ -8,7 +8,7 @@ function factorize_regularized_system!(solver)
     for ntrial = 1:max_trials
         set_aug_diagonal_reg!(solver.kkt, solver)
         MadCore.factorize_wrapper!(solver)
-        if MadCore.is_factorized(solver.kkt.linear_solver)
+        if is_factorized(solver.kkt.linear_solver)
             break
         end
         solver.del_w *= 100.0

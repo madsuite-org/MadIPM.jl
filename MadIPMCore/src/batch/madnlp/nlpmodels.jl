@@ -53,34 +53,34 @@ function MadCore.unpack_z!(
     Z_full[bcb.fixed_handler.free, :] .= z_free ./ bcb.obj_scale
 end
 
-function MadCore.get_x0(
+function NLPModels.get_x0(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.x0, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_y0(bcb::UniformBatchCallback) = bcb.nlp.meta.y0
+NLPModels.get_y0(bcb::UniformBatchCallback) = bcb.nlp.meta.y0
 
-MadCore.get_lvar(
+NLPModels.get_lvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH,EH} = bcb.nlp.meta.lvar
-function MadCore.get_lvar(
+function NLPModels.get_lvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.lvar, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_uvar(
+NLPModels.get_uvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH,EH} = bcb.nlp.meta.uvar
-function MadCore.get_uvar(
+function NLPModels.get_uvar(
     bcb::UniformBatchCallback{T,VT,MT,VI,BM,FH,EH},
 ) where {T,VT,MT,VI,BM,FH<:MadCore.MakeParameter,EH}
     view(bcb.nlp.meta.uvar, bcb.fixed_handler.free, :)
 end
 
-MadCore.get_lcon(bcb::UniformBatchCallback) = bcb.nlp.meta.lcon
-MadCore.get_ucon(bcb::UniformBatchCallback) = bcb.nlp.meta.ucon
+NLPModels.get_lcon(bcb::UniformBatchCallback) = bcb.nlp.meta.lcon
+NLPModels.get_ucon(bcb::UniformBatchCallback) = bcb.nlp.meta.ucon
 
 function MadCore.unpack_y!(y_full, bcb::UniformBatchCallback, y)
     @. y_full = y * bcb.con_scale * bcb.obj_sign / bcb.obj_scale
