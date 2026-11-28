@@ -31,7 +31,7 @@ function BatchUnreducedKKTVector(
     fill!(values, zero(T))
 
     primal = view(values, 1:n, :)
-    xp_lr = view(values, ind_lb, :)
+    xp_lr = @inbounds(view(values, ind_lb, :))
     SV = typeof(primal)
     IV = typeof(xp_lr)
     return BatchUnreducedKKTVector{T,MT,typeof(ind_lb),SV,IV}(
@@ -48,7 +48,7 @@ function BatchUnreducedKKTVector(
         view(values, (n+m+1):(n+m+nlb), :),
         view(values, (n+m+nlb+1):(n+m+nlb+nub), :),
         xp_lr,
-        view(values, ind_ub, :),
+        @inbounds(view(values, ind_ub, :)),
     )
 end
 
@@ -87,7 +87,7 @@ function BatchPrimalVector(
     fill!(values, zero(T))
 
     variable = view(values, 1:nx, :)
-    lower = view(values, ind_lb, :)
+    lower = @inbounds(view(values, ind_lb, :))
     SV = typeof(variable)
     IV = typeof(lower)
     return BatchPrimalVector{T,MT,typeof(ind_lb),SV,IV}(
@@ -99,7 +99,7 @@ function BatchPrimalVector(
         variable,
         view(values, (nx+1):(nx+ns), :),
         lower,
-        view(values, ind_ub, :),
+        @inbounds(view(values, ind_ub, :)),
     )
 end
 

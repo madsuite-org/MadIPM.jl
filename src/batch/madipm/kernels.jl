@@ -201,8 +201,8 @@ function _set_aug_diagonal_reg_unmasked!(kkt, solver::AbstractBatchMPCSolver)
     kkt.l_lower .= lower(solver.zl)
     kkt.u_lower .= upper(solver.zu)
     pr_diag(kkt) .= kkt.reg
-    pr_diag_lb = view(kkt.nzVals, _get_ind_lb(solver), :)
-    pr_diag_ub = view(kkt.nzVals, _get_ind_ub(solver), :)
+    pr_diag_lb = @inbounds(view(kkt.nzVals, _get_ind_lb(solver), :))
+    pr_diag_ub = @inbounds(view(kkt.nzVals, _get_ind_ub(solver), :))
     pr_diag_lb .-= kkt.l_lower ./ kkt.l_diag
     pr_diag_ub .-= kkt.u_lower ./ kkt.u_diag
     return
@@ -225,8 +225,8 @@ function _set_aug_diagonal_reg_masked!(kkt, solver::AbstractBatchMPCSolver)
     @. kkt.l_lower = ifelse(mask == 1, zl_r, kkt.l_lower)
     @. kkt.u_lower = ifelse(mask == 1, zu_r, kkt.u_lower)
     @. _pr = ifelse(mask == 1, kkt.reg, _pr)
-    pr_diag_lb = view(kkt.nzVals, _get_ind_lb(solver), :)
-    pr_diag_ub = view(kkt.nzVals, _get_ind_ub(solver), :)
+    pr_diag_lb = @inbounds(view(kkt.nzVals, _get_ind_lb(solver), :))
+    pr_diag_ub = @inbounds(view(kkt.nzVals, _get_ind_ub(solver), :))
     @. pr_diag_lb = ifelse(mask == 1, pr_diag_lb - kkt.l_lower / kkt.l_diag, pr_diag_lb)
     @. pr_diag_ub = ifelse(mask == 1, pr_diag_ub - kkt.u_lower / kkt.u_diag, pr_diag_ub)
     return
